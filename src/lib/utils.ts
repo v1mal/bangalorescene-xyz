@@ -67,3 +67,13 @@ export function slugify(text: string) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
 }
+
+export function withBase(path: string, base = '/') {
+  if (!path || path.startsWith('#') || /^[a-z]+:/i.test(path)) {
+    return path;
+  }
+
+  const normalizedBase = !base || base === '/' ? '/' : `/${base.replace(/^\/+|\/+$/g, '')}/`;
+  const normalizedPath = path.replace(/^\/+/, '');
+  return normalizedBase === '/' ? `/${normalizedPath}` : `${normalizedBase}${normalizedPath}`;
+}

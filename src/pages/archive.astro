@@ -2,6 +2,7 @@
 import PublicLayout from '@/layouts/PublicLayout.astro';
 import EventCard from '@/components/EventCard.astro';
 import { getArchiveEvents } from '@/lib/content';
+import { withBase } from '@/lib/utils';
 
 let events = [];
 let error = '';
@@ -11,6 +12,9 @@ try {
 } catch (cause) {
   error = cause instanceof Error ? cause.message : 'Unable to load archive events.';
 }
+
+const upcomingHref = withBase('/', import.meta.env.BASE_URL);
+const adminHref = withBase('/admin/', import.meta.env.BASE_URL);
 ---
 
 <PublicLayout title="Archive | bangalorescene.xyz">
@@ -22,8 +26,8 @@ try {
         A running archive of previously approved Bangalore events, preserved so good listings stay referenceable after they end.
       </p>
       <div class="nav-row">
-        <a class="button" href="/">Back to upcoming</a>
-        <a class="ghost-link" href="/admin/">Curator admin</a>
+        <a class="button" href={upcomingHref}>Back to upcoming</a>
+        <a class="ghost-link" href={adminHref}>Curator admin</a>
       </div>
     </section>
 

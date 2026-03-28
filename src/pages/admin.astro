@@ -1,5 +1,9 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import { withBase } from '@/lib/utils';
+
+const publicSiteHref = withBase('/', import.meta.env.BASE_URL);
+const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BASE_URL);
 ---
 
 <AdminLayout title="Admin | bangalorescene.xyz">
@@ -55,7 +59,7 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
       </div>
     </section>
 
-    <section class="admin-workspace" data-admin-app>
+    <section class="admin-workspace" data-admin-app data-public-data-url={publicDataHref}>
       <aside class="admin-sidebar admin-card">
         <div class="admin-sidebar__block">
           <p class="admin-kicker">Signed In As</p>
@@ -107,7 +111,7 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
             </p>
             <div class="admin-banner__meta">
               <p class="admin-banner__summary" data-public-summary hidden></p>
-              <a class="admin-banner__link" href="/">Go to public site</a>
+              <a class="admin-banner__link" href={publicSiteHref}>Go to public site</a>
             </div>
           </div>
         </section>
@@ -140,6 +144,7 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
     const feedMessage = document.querySelector('[data-feed-message]');
     const authPanel = document.querySelector('[data-auth-panel]');
     const adminApp = document.querySelector('[data-admin-app]');
+    const publicDataUrl = adminApp?.dataset.publicDataUrl;
     const listMessage = document.querySelector('[data-list-message]');
     const eventsList = document.querySelector('[data-events-list]');
     const queueTitle = document.querySelector('[data-queue-title]');
@@ -251,10 +256,10 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
     }
 
     async function fetchPublicSummary() {
-      if (!publicSummary) return;
+      if (!publicSummary || !publicDataUrl) return;
 
       try {
-        const response = await fetch('/data/events/upcoming.json', { cache: 'no-store' });
+        const response = await fetch(publicDataUrl, { cache: 'no-store' });
         if (!response.ok) throw new Error(`Unexpected response ${response.status}`);
         const payload = await response.json();
         const items = Array.isArray(payload?.items) ? payload.items : [];

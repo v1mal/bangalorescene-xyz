@@ -1,5 +1,9 @@
 ---
 import PublicLayout from '@/layouts/PublicLayout.astro';
+import { withBase } from '@/lib/utils';
+
+const upcomingHref = withBase('/', import.meta.env.BASE_URL);
+const archiveHref = withBase('/archive/', import.meta.env.BASE_URL);
 ---
 
 <PublicLayout title="Not found | bangalorescene.xyz">
@@ -9,8 +13,8 @@ import PublicLayout from '@/layouts/PublicLayout.astro';
       <h1 class="hero-title hero-title--utility">That event page is missing from the current export.</h1>
       <p class="hero-copy">The record may have expired out of the active dataset, or the URL may be incorrect.</p>
       <div class="nav-row">
-        <a class="button" href="/">Back to upcoming</a>
-        <a class="ghost-link" href="/archive/">Browse archive</a>
+        <a class="button" href={upcomingHref}>Back to upcoming</a>
+        <a class="ghost-link" href={archiveHref}>Browse archive</a>
       </div>
     </section>
   </main>

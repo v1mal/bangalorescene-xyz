@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { withBase } from '@/lib/utils';
 
 interface Props {
   title: string;
@@ -10,6 +11,13 @@ const {
   title,
   description = 'bangalorescene.xyz is a curated Bangalore events platform with a static public archive and lightweight moderation admin.'
 } = Astro.props;
+
+const upcomingHref = withBase('/', import.meta.env.BASE_URL);
+const archiveHref = withBase('/archive/', import.meta.env.BASE_URL);
+const aboutHref = withBase('/about/', import.meta.env.BASE_URL);
+const contactHref = withBase('/contact/', import.meta.env.BASE_URL);
+const privacyHref = withBase('/privacy/', import.meta.env.BASE_URL);
+const termsHref = withBase('/terms/', import.meta.env.BASE_URL);
 ---
 
 <BaseLayout title={title} description={description}>
@@ -24,31 +32,31 @@ const {
         <div class="site-footer__columns">
           <nav class="site-footer__column" aria-label="Browse">
             <p class="site-footer__heading">Browse</p>
-            <a href="/">Upcoming</a>
-            <a href="/archive/">Archive</a>
+            <a href={upcomingHref}>Upcoming</a>
+            <a href={archiveHref}>Archive</a>
           </nav>
           <nav class="site-footer__column" aria-label="Explore">
             <p class="site-footer__heading">Explore</p>
-            <a href="/about/">About</a>
-            <a href="/contact/">Contact</a>
+            <a href={aboutHref}>About</a>
+            <a href={contactHref}>Contact</a>
           </nav>
           <nav class="site-footer__column" aria-label="Editorial">
             <p class="site-footer__heading">Editorial</p>
-            <a href="/archive/">Past archive</a>
-            <a href="/contact/">Suggest an update</a>
+            <a href={archiveHref}>Past archive</a>
+            <a href={contactHref}>Suggest an update</a>
           </nav>
           <nav class="site-footer__column" aria-label="Legal">
             <p class="site-footer__heading">Legal</p>
-            <a href="/privacy/">Privacy Policy</a>
-            <a href="/terms/">Terms</a>
+            <a href={privacyHref}>Privacy Policy</a>
+            <a href={termsHref}>Terms</a>
           </nav>
         </div>
         <div class="site-footer__bottom">
           <p class="site-footer__note">Curated for Bangalore. Static public feed, direct event pages, and a lightweight editorial workflow.</p>
           <div class="site-footer__bottom-links">
-            <a href="/archive/">Archive</a>
-            <a href="/privacy/">Privacy</a>
-            <a href="/contact/">Contact</a>
+            <a href={archiveHref}>Archive</a>
+            <a href={privacyHref}>Privacy</a>
+            <a href={contactHref}>Contact</a>
           </div>
         </div>
       </div>

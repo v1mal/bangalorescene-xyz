@@ -1,5 +1,5 @@
 ---
-import { formatEventDateRange } from '@/lib/utils';
+import { formatEventDateRange, withBase } from '@/lib/utils';
 import type { PublicEventRecord } from '@/lib/types';
 
 interface Props {
@@ -9,20 +9,21 @@ interface Props {
 
 const { event, compact = false } = Astro.props;
 const dateLabel = formatEventDateRange(event);
+const eventHref = withBase(`/events/${event.slug}/`, import.meta.env.BASE_URL);
 ---
 
 <article class={`event-card media-panel ${compact ? 'event-card--compact' : ''}`}>
   {event.image_url && <img class="media-panel__image" src={event.image_url} alt={event.title} />}
   <div class="media-panel__body">
     <h3 class="event-card__title">
-      <a class="event-card__title-link" href={`/events/${event.slug}/`}>{event.title}</a>
+      <a class="event-card__title-link" href={eventHref}>{event.title}</a>
     </h3>
     <div class="event-meta">
       <span>{dateLabel}</span>
       <span>{event.venue_name}</span>
     </div>
     <div class="nav-row">
-      <a class="button" href={`/events/${event.slug}/`}>View details</a>
+      <a class="button" href={eventHref}>View details</a>
     </div>
   </div>
 </article>
