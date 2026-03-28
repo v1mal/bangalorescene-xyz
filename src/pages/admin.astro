@@ -4,6 +4,7 @@ import { withBase } from '@/lib/utils';
 
 const publicSiteHref = withBase('/', import.meta.env.BASE_URL);
 const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BASE_URL);
+const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
 ---
 
 <AdminLayout title="Admin | bangalorescene.xyz">
@@ -59,7 +60,12 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
       </div>
     </section>
 
-    <section class="admin-workspace" data-admin-app data-public-data-url={publicDataHref}>
+    <section
+      class="admin-workspace"
+      data-admin-app
+      data-public-data-url={publicDataHref}
+      data-admin-redirect-url={adminRedirectHref}
+    >
       <aside class="admin-sidebar admin-card">
         <div class="admin-sidebar__block">
           <p class="admin-kicker">Signed In As</p>
@@ -138,13 +144,13 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
     import { createBrowserSupabaseClient } from '@/lib/supabase';
     import { adminEventRecordSchema } from '@/lib/types';
 
-    const supabase = createBrowserSupabaseClient();
     const setupMessage = document.querySelector('[data-setup-message]');
     const runtimeMessage = document.querySelector('[data-runtime-message]');
     const feedMessage = document.querySelector('[data-feed-message]');
     const authPanel = document.querySelector('[data-auth-panel]');
     const adminApp = document.querySelector('[data-admin-app]');
     const publicDataUrl = adminApp?.dataset.publicDataUrl;
+    const adminRedirectUrl = adminApp?.dataset.adminRedirectUrl;
     const listMessage = document.querySelector('[data-list-message]');
     const eventsList = document.querySelector('[data-events-list]');
     const queueTitle = document.querySelector('[data-queue-title]');
@@ -183,6 +189,8 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
       rejected: 'rejected',
       hidden: 'hidden'
     };
+
+    let supabase;
 
     function setAdminState(state) {
       document.body.dataset.adminState = state;
@@ -283,6 +291,7 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
     }
 
     async function refreshCounts() {
+      if (!supabase) return;
       const statuses = ['pending', 'approved', 'rejected', 'hidden'];
       const results = await Promise.all(
         statuses.map(async (status) => {
@@ -308,6 +317,18 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
       if (!listMessage) return;
       listMessage.hidden = true;
       listMessage.innerHTML = '';
+    }
+
+    function showSetupState(message) {
+      setAdminState('signed-out');
+      showMessage(setupMessage, message, 'hidden');
+      clearMessage(runtimeMessage);
+      clearMessage(feedMessage);
+      if (eventsList) eventsList.innerHTML = '';
+      clearQueueState();
+      if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, 0);
+      if (loginButton) loginButton.disabled = true;
+      if (logoutButton) logoutButton.disabled = true;
     }
 
     function eventCardMarkup(event) {
@@ -402,6 +423,7 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
     }
 
     async function loadEvents() {
+      if (!supabase) return;
       clearMessage(feedMessage);
       if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, currentCounts[activeStatus] || 0);
 
@@ -453,6 +475,7 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
     }
 
     async function mutateEvent(card, action) {
+      if (!supabase) return;
       const id = card.dataset.eventId;
       const clicked = card.querySelector(`[data-action="${action}"]`);
       if (clicked) clicked.disabled = true;
@@ -489,11 +512,13 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
     }
 
     loginButton?.addEventListener('click', async () => {
-      const redirectTo = `${window.location.origin}/admin/`;
+      if (!supabase || !adminRedirectUrl) return;
+      const redirectTo = new URL(adminRedirectUrl, window.location.origin).toString();
       await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
     });
 
     logoutButton?.addEventListener('click', async () => {
+      if (!supabase) return;
       await supabase.auth.signOut();
     });
 
@@ -519,12 +544,20 @@ const publicDataHref = withBase('/data/events/upcoming.json', import.meta.env.BA
       await mutateEvent(card, action);
     });
 
-    const { data } = await supabase.auth.getSession();
-    setAdminState('loading');
-    await updateAuthUI(data.session);
+    try {
+      supabase = createBrowserSupabaseClient();
+    } catch (error) {
+      showSetupState(error instanceof Error ? error.message : 'Admin setup is incomplete.');
+    }
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      await updateAuthUI(session);
-    });
+    if (supabase) {
+      const { data } = await supabase.auth.getSession();
+      setAdminState('loading');
+      await updateAuthUI(data.session);
+
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        await updateAuthUI(session);
+      });
+    }
   </script>
 </AdminLayout>
