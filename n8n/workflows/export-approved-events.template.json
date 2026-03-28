@@ -24,7 +24,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "select id, slug, title, summary, event_start_at, event_end_at, timezone, venue_name, neighborhood, category, price_text, source_url, image_url, tags\nfrom public.events\nwhere status = 'approved'\norder by event_start_at asc;"
+        "query": "select id, slug, title, summary, event_start_at, event_end_at, timezone, venue_name, neighborhood, category, price_text, source_url, image_url, tags\nfrom public.public_approved_events\norder by event_start_at asc;"
       },
       "id": "fetch-approved-events",
       "name": "Fetch Approved Events",

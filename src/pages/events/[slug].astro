@@ -24,8 +24,10 @@ const backHref = withBase(archived ? '/archive/' : '/', import.meta.env.BASE_URL
       <p class="hero-copy">{event.summary}</p>
       <div class="nav-row">
         <a class="button" href={event.source_url} target="_blank" rel="noreferrer">Visit source listing</a>
+        <button class="secondary" type="button" data-share-trigger>Share event</button>
         <a class="ghost-link" href={backHref}>{archived ? 'Back to archive' : 'Back to upcoming'}</a>
       </div>
+      <p class="muted event-detail__share-status" data-share-status hidden></p>
     </section>
 
     <section class="event-detail-grid">
@@ -72,8 +74,13 @@ const backHref = withBase(archived ? '/archive/' : '/', import.meta.env.BASE_URL
   }
 
   .event-detail__section-title,
-  .event-detail__summary {
+  .event-detail__summary,
+  .event-detail__share-status {
     margin: 0;
+  }
+
+  .event-detail__share-status {
+    font-size: var(--type-size-small);
   }
 
   @media (max-width: 900px) {
@@ -86,3 +93,38 @@ const backHref = withBase(archived ? '/archive/' : '/', import.meta.env.BASE_URL
     }
   }
 </style>
+
+<script>
+  import { shareEventLink } from '@/lib/share';
+
+  const shareButton = document.querySelector('[data-share-trigger]');
+  const shareStatus = document.querySelector('[data-share-status]');
+
+  function showShareStatus(message) {
+    if (!shareStatus) return;
+    shareStatus.hidden = false;
+    shareStatus.textContent = message;
+  }
+
+  function hideShareStatus() {
+    if (!shareStatus) return;
+    shareStatus.hidden = true;
+    shareStatus.textContent = '';
+  }
+
+  shareButton?.addEventListener('click', async () => {
+    try {
+      const result = await shareEventLink(
+        document.title.replace(' | bangalorescene.xyz', ''),
+        window.location.href
+      );
+      if (result === 'copied') {
+        showShareStatus('Event link copied to clipboard.');
+        return;
+      }
+      hideShareStatus();
+    } catch (_error) {
+      hideShareStatus();
+    }
+  });
+</script>

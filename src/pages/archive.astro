@@ -1,20 +1,13 @@
 ---
 import PublicLayout from '@/layouts/PublicLayout.astro';
-import EventCard from '@/components/EventCard.astro';
+import PublicEventFeed from '@/components/PublicEventFeed.astro';
 import { getArchiveEvents } from '@/lib/content';
 import { withBase } from '@/lib/utils';
 
-let events = [];
-let error = '';
-
-try {
-  events = await getArchiveEvents();
-} catch (cause) {
-  error = cause instanceof Error ? cause.message : 'Unable to load archive events.';
-}
-
 const upcomingHref = withBase('/', import.meta.env.BASE_URL);
 const adminHref = withBase('/admin/', import.meta.env.BASE_URL);
+const archiveFeedUrl = withBase('/data/events/archive.json', import.meta.env.BASE_URL);
+const archiveEvents = await getArchiveEvents();
 ---
 
 <PublicLayout title="Archive | bangalorescene.xyz">
@@ -40,15 +33,12 @@ const adminHref = withBase('/admin/', import.meta.env.BASE_URL);
         <p class="section-copy">Older listings stay browsable here once they move out of the live feed.</p>
       </div>
 
-      {error ? (
-        <div class="error-box">The archive export could not be loaded: {error}</div>
-      ) : events.length === 0 ? (
-        <div class="empty">No archived events yet. Expired approved listings will appear here automatically.</div>
-      ) : (
-        <div class="event-grid">
-          {events.map((event) => <EventCard event={event} compact />)}
-        </div>
-      )}
+      <PublicEventFeed
+        feedUrl={archiveFeedUrl}
+        initialItems={archiveEvents}
+        loadingMessage="Loading archived events..."
+        emptyMessage="No archived events yet. Expired approved listings will appear here automatically."
+      />
     </section>
   </main>
 </PublicLayout>

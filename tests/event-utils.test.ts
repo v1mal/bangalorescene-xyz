@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { decodePublicFeedPayload } from '@/lib/public-feed';
 import { isPastEvent, parsePublicCollection, toPublicEventRecord } from '@/lib/utils';
 import type { AdminEventRecord } from '@/lib/types';
 
@@ -89,5 +90,32 @@ describe('event export utilities', () => {
         }
       ]
     })).not.toThrow();
+  });
+
+  it('accepts a valid empty public payload', () => {
+    expect(decodePublicFeedPayload(JSON.stringify({
+      generated_at: '2026-03-28T09:00:00+05:30',
+      items: []
+    }))).toMatchObject({
+      generated_at: '2026-03-28T09:00:00+05:30',
+      items: []
+    });
+  });
+
+  it('rejects malformed public JSON payloads', () => {
+    expect(() => decodePublicFeedPayload('{"generated_at":')).toThrow(
+      'The public export is malformed JSON.'
+    );
+  });
+
+  it('rejects payloads with a missing or invalid top-level items array', () => {
+    expect(() => decodePublicFeedPayload(JSON.stringify({
+      generated_at: '2026-03-28T09:00:00+05:30'
+    }))).toThrow('The public export is missing required fields or has an invalid items array.');
+
+    expect(() => decodePublicFeedPayload(JSON.stringify({
+      generated_at: '2026-03-28T09:00:00+05:30',
+      items: {}
+    }))).toThrow('The public export is missing required fields or has an invalid items array.');
   });
 });

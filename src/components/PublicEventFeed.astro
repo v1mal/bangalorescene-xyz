@@ -1,0 +1,234 @@
+---
+import EventCard from '@/components/EventCard.astro';
+import type { PublicEventRecord } from '@/lib/types';
+
+interface Props {
+  feedUrl: string;
+  emptyMessage: string;
+  loadingMessage?: string;
+  initialVisibleCount?: number;
+  loadMoreStep?: number;
+  initialItems?: PublicEventRecord[];
+}
+
+const {
+  feedUrl,
+  emptyMessage,
+  loadingMessage = 'Loading latest events...',
+  initialVisibleCount = 6,
+  loadMoreStep = 6,
+  initialItems = []
+} = Astro.props;
+
+const hasInitialItems = initialItems.length > 0;
+const initialVisibleItems = initialItems.slice(0, initialVisibleCount);
+const shouldShowLoadMore = initialItems.length > initialVisibleItems.length;
+---
+
+<div
+  class="public-feed"
+  data-public-feed
+  data-feed-url={feedUrl}
+  data-empty-message={emptyMessage}
+  data-loading-message={loadingMessage}
+  data-base-url={import.meta.env.BASE_URL}
+  data-initial-visible-count={String(initialVisibleCount)}
+  data-load-more-step={String(loadMoreStep)}
+  data-has-initial-items={hasInitialItems ? 'true' : 'false'}
+>
+  <div class="loading-box" data-feed-loading role="status" aria-live="polite" hidden={hasInitialItems}>
+    {loadingMessage}
+  </div>
+  <div class="error-box" data-feed-error hidden></div>
+  <div class="empty" data-feed-empty hidden></div>
+  <div
+    class="event-grid"
+    data-feed-grid
+    hidden={!hasInitialItems}
+    data-feed-items={JSON.stringify(initialItems)}
+    data-visible-count={String(initialVisibleItems.length)}
+  >
+    {initialVisibleItems.map((event) => <EventCard event={event} />)}
+  </div>
+  <div class="public-feed__actions" data-feed-actions hidden={!shouldShowLoadMore}>
+    <button class="secondary" type="button" data-feed-load-more>Load more events</button>
+  </div>
+</div>
+
+<script>
+  import { decodePublicFeedPayload } from '@/lib/public-feed';
+  import { shareEventLink } from '@/lib/share';
+  import { formatEventDateRange, withBase } from '@/lib/utils';
+
+  function escapeHtml(text) {
+    return String(text ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function eventCardMarkup(event, baseUrl) {
+    const eventHref = withBase(`/events/${event.slug}/`, baseUrl);
+    const imageMarkup = event.image_url
+      ? `<img class="media-panel__image" src="${escapeHtml(event.image_url)}" alt="${escapeHtml(event.title)}">`
+      : '';
+
+    return `
+      <article class="event-card media-panel">
+        ${imageMarkup}
+        <div class="media-panel__body">
+          <h3 class="event-card__title">
+            <a class="event-card__title-link" href="${eventHref}">${escapeHtml(event.title)}</a>
+          </h3>
+          <div class="event-meta">
+            <span>${escapeHtml(formatEventDateRange(event))}</span>
+            <span>${escapeHtml(event.venue_name)}</span>
+          </div>
+          <div class="nav-row">
+            <a class="button" href="${eventHref}">View details</a>
+            <button class="secondary" type="button" data-share-trigger data-share-title="${escapeHtml(event.title)}" data-share-url="${eventHref}">Share event</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function hide(el) {
+    if (el) el.hidden = true;
+  }
+
+  function show(el) {
+    if (el) el.hidden = false;
+  }
+
+  function renderFeedItems(root) {
+    const gridEl = root.querySelector('[data-feed-grid]');
+    const actionsEl = root.querySelector('[data-feed-actions]');
+    const loadMoreButton = root.querySelector('[data-feed-load-more]');
+    const baseUrl = root.dataset.baseUrl || '/';
+    const visibleCount = Number(root.dataset.visibleCount || 0);
+    const items = JSON.parse(root.dataset.feedItems || '[]');
+
+    if (!gridEl) return;
+
+    gridEl.innerHTML = items.slice(0, visibleCount).map((event) => eventCardMarkup(event, baseUrl)).join('');
+    show(gridEl);
+
+    const hasMore = visibleCount < items.length;
+    if (actionsEl) actionsEl.hidden = !hasMore;
+    if (loadMoreButton) loadMoreButton.disabled = !hasMore;
+  }
+
+  function feedsAreEqual(currentItems, nextItems) {
+    return JSON.stringify(currentItems) === JSON.stringify(nextItems);
+  }
+
+  async function loadFeed(root) {
+    const loadingEl = root.querySelector('[data-feed-loading]');
+    const errorEl = root.querySelector('[data-feed-error]');
+    const emptyEl = root.querySelector('[data-feed-empty]');
+    const gridEl = root.querySelector('[data-feed-grid]');
+    const actionsEl = root.querySelector('[data-feed-actions]');
+    const feedUrl = root.dataset.feedUrl;
+    const emptyMessage = root.dataset.emptyMessage || 'No items are available yet.';
+    const initialVisibleCount = Number(root.dataset.initialVisibleCount || 6);
+    const hasInitialItems = root.dataset.hasInitialItems === 'true';
+    const currentItems = JSON.parse(root.dataset.feedItems || '[]');
+
+    root.setAttribute('aria-busy', 'true');
+    if (!hasInitialItems) {
+      show(loadingEl);
+    }
+    hide(errorEl);
+    hide(emptyEl);
+    if (errorEl) errorEl.textContent = '';
+    if (emptyEl) emptyEl.textContent = '';
+    if (!hasInitialItems) {
+      hide(gridEl);
+      hide(actionsEl);
+      if (gridEl) gridEl.innerHTML = '';
+      root.dataset.feedItems = '[]';
+      root.dataset.visibleCount = '0';
+    }
+
+    try {
+      const response = await fetch(feedUrl, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`The public export could not be loaded (${response.status}).`);
+      }
+
+      const rawText = await response.text();
+      const collection = decodePublicFeedPayload(rawText);
+
+      hide(loadingEl);
+
+      if (!collection.items.length) {
+        if (emptyEl) emptyEl.textContent = emptyMessage;
+        hide(gridEl);
+        hide(actionsEl);
+        show(emptyEl);
+        return;
+      }
+
+      if (!feedsAreEqual(currentItems, collection.items)) {
+        root.dataset.feedItems = JSON.stringify(collection.items);
+        root.dataset.visibleCount = String(Math.min(initialVisibleCount, collection.items.length));
+        root.dataset.hasInitialItems = 'true';
+        renderFeedItems(root);
+      }
+    } catch (error) {
+      hide(loadingEl);
+      if (!hasInitialItems) {
+        if (errorEl) {
+          errorEl.textContent = error instanceof Error ? error.message : 'Unable to load this feed right now.';
+        }
+        show(errorEl);
+      }
+    } finally {
+      root.setAttribute('aria-busy', 'false');
+    }
+  }
+
+  document.querySelectorAll('[data-public-feed]').forEach((root) => {
+    loadFeed(root);
+
+    root.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      if (!target.hasAttribute('data-feed-load-more')) return;
+
+      const currentVisible = Number(root.dataset.visibleCount || 0);
+      const step = Number(root.dataset.loadMoreStep || 6);
+      const items = JSON.parse(root.dataset.feedItems || '[]');
+      root.dataset.visibleCount = String(Math.min(currentVisible + step, items.length));
+      renderFeedItems(root);
+    });
+
+    root.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      if (!target.hasAttribute('data-share-trigger')) return;
+
+      const shareTitle = target.dataset.shareTitle;
+      const shareUrl = target.dataset.shareUrl;
+      if (!shareTitle || !shareUrl) return;
+
+      const originalLabel = target.textContent;
+
+      try {
+        const shareHref = new URL(shareUrl, window.location.origin).toString();
+        const result = await shareEventLink(shareTitle, shareHref);
+        if (result === 'copied') {
+          target.textContent = 'Copied link';
+          window.setTimeout(() => {
+            target.textContent = originalLabel;
+          }, 1800);
+        }
+      } catch (_error) {
+        target.textContent = originalLabel;
+      }
+    });
+  });
+</script>

@@ -168,6 +168,12 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
       rejected: 0,
       hidden: 0
     };
+    let currentRecords = [];
+    const pendingMutations = new Map();
+    const ADMIN_REQUEST_TIMEOUT_MS = 8000;
+    let latestCountsRequestId = 0;
+    let latestEventsRequestId = 0;
+    let latestSummaryRequestId = 0;
 
     const statusLabels = {
       pending: 'Pending queue',
@@ -263,21 +269,68 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
       return 'No hidden events are available right now.';
     }
 
+    function cloneRecord(record) {
+      return {
+        ...record,
+        tags: Array.isArray(record.tags) ? [...record.tags] : []
+      };
+    }
+
+    function cloneRecords(records) {
+      return records.map(cloneRecord);
+    }
+
+    function setQueueRefreshing(refreshing) {
+      if (!adminApp) return;
+      adminApp.dataset.queueRefreshing = String(refreshing);
+      if (refreshQueueButton) refreshQueueButton.disabled = refreshing;
+    }
+
+    function isTimeoutError(error) {
+      return error instanceof Error && error.name === 'TimeoutError';
+    }
+
+    function createTimeoutError(label) {
+      const error = new Error(`${label} timed out. Please try again.`);
+      error.name = 'TimeoutError';
+      return error;
+    }
+
+    async function withTimeout(promise, label, timeoutMs = ADMIN_REQUEST_TIMEOUT_MS) {
+      let timeoutId;
+      try {
+        return await Promise.race([
+          promise,
+          new Promise((_, reject) => {
+            timeoutId = window.setTimeout(() => reject(createTimeoutError(label)), timeoutMs);
+          })
+        ]);
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
+    }
+
     async function fetchPublicSummary() {
       if (!publicSummary || !publicDataUrl) return;
+      const requestId = ++latestSummaryRequestId;
 
       try {
-        const response = await fetch(publicDataUrl, { cache: 'no-store' });
+        const response = await withTimeout(fetch(publicDataUrl, { cache: 'no-store' }), 'Public summary request');
+        if (requestId !== latestSummaryRequestId) return;
         if (!response.ok) throw new Error(`Unexpected response ${response.status}`);
-        const payload = await response.json();
+        const payload = await withTimeout(response.json(), 'Public summary payload');
+        if (requestId !== latestSummaryRequestId) return;
         const items = Array.isArray(payload?.items) ? payload.items : [];
         publicSummary.hidden = false;
         publicSummary.textContent = items.length
           ? `${items.length} upcoming event${items.length === 1 ? '' : 's'} currently live on the public site`
           : 'No public events are currently live';
+        return true;
       } catch (_error) {
-        publicSummary.hidden = true;
-        publicSummary.textContent = '';
+        if (requestId !== latestSummaryRequestId) return;
+        publicSummary.hidden = false;
+        publicSummary.textContent = 'Public summary unavailable right now';
+        return false;
       }
     }
 
@@ -292,16 +345,23 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
 
     async function refreshCounts() {
       if (!supabase) return;
+      const requestId = ++latestCountsRequestId;
       const statuses = ['pending', 'approved', 'rejected', 'hidden'];
-      const results = await Promise.all(
-        statuses.map(async (status) => {
-          const { count } = await supabase
-            .from('events')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', status);
-          return [status, count || 0];
-        })
+      const results = await withTimeout(
+        Promise.all(
+          statuses.map(async (status) => {
+            const { count, error } = await supabase
+              .from('events')
+              .select('*', { count: 'exact', head: true })
+              .eq('status', status);
+            if (error) throw error;
+            return [status, count || 0];
+          })
+        ),
+        'Admin counts refresh'
       );
+
+      if (requestId !== latestCountsRequestId) return;
 
       currentCounts = Object.fromEntries(results);
       renderCounts();
@@ -331,15 +391,38 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
       if (logoutButton) logoutButton.disabled = true;
     }
 
+    function renderQueue() {
+      const count = currentRecords.length;
+      if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, count);
+
+      if (!count) {
+        if (eventsList) eventsList.innerHTML = '';
+        showQueueState(getEmptyFilterMessage(activeStatus));
+        return;
+      }
+
+      clearQueueState();
+      if (eventsList) {
+        eventsList.innerHTML = currentRecords.map(eventCardMarkup).join('');
+      }
+    }
+
     function eventCardMarkup(event) {
+      const pendingAction = pendingMutations.get(event.id);
+      const isBusy = Boolean(pendingAction);
+      const busyBadge = pendingAction
+        ? `<span class="admin-badge admin-badge--neutral">${pendingAction === 'save' ? 'Saving…' : 'Updating…'}</span>`
+        : '';
+
       return `
-        <article class="admin-event-card" data-event-id="${event.id}" data-status="${event.status}">
+        <article class="admin-event-card" data-event-id="${event.id}" data-status="${event.status}" ${isBusy ? 'data-busy="true"' : ''}>
           <div class="admin-event-card__head">
             <div class="admin-event-card__title-wrap">
               <div class="admin-badges">
                 <span class="admin-badge admin-badge--${statusTone[event.status]}">${event.status}</span>
                 <span class="admin-badge admin-badge--neutral">${escapeHtml(event.category || 'General')}</span>
                 ${event.score == null ? '' : `<span class="admin-badge admin-badge--neutral">Score ${escapeHtml(event.score)}</span>`}
+                ${busyBadge}
               </div>
               <h4 class="admin-event-card__title">${escapeHtml(event.title)}</h4>
             </div>
@@ -399,11 +482,11 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
           </div>
 
           <div class="admin-actions">
-            <button class="admin-button admin-button--primary" data-action="approve">Approve</button>
-            <button class="admin-button admin-button--ghost" data-action="save">Save edits</button>
-            <button class="admin-button admin-button--ghost" data-action="pending">Restore to pending</button>
-            <button class="admin-button admin-button--ghost admin-button--warn" data-action="hide">Hide</button>
-            <button class="admin-button admin-button--ghost admin-button--danger" data-action="reject">Reject</button>
+            <button class="admin-button admin-button--primary" data-action="approve" ${isBusy ? 'disabled' : ''}>Approve</button>
+            <button class="admin-button admin-button--ghost" data-action="save" ${isBusy ? 'disabled' : ''}>Save edits</button>
+            <button class="admin-button admin-button--ghost" data-action="pending" ${isBusy ? 'disabled' : ''}>Restore to pending</button>
+            <button class="admin-button admin-button--ghost admin-button--warn" data-action="hide" ${isBusy ? 'disabled' : ''}>Hide</button>
+            <button class="admin-button admin-button--ghost admin-button--danger" data-action="reject" ${isBusy ? 'disabled' : ''}>Reject</button>
           </div>
         </article>
       `;
@@ -422,42 +505,62 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
       };
     }
 
-    async function loadEvents() {
+    async function loadEvents({ background = false } = {}) {
       if (!supabase) return;
-      clearMessage(feedMessage);
-      if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, currentCounts[activeStatus] || 0);
+      const requestId = ++latestEventsRequestId;
+      const statusAtRequestStart = activeStatus;
+      if (!background) clearMessage(feedMessage);
+      setQueueRefreshing(true);
 
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('status', activeStatus)
-        .order('event_start_at', { ascending: true });
+      try {
+        const { data, error } = await withTimeout(
+          supabase
+            .from('events')
+            .select('*')
+            .eq('status', statusAtRequestStart)
+            .order('event_start_at', { ascending: true }),
+          `${statusLabels[statusAtRequestStart]} request`
+        );
 
-      if (error) {
-        if (eventsList) eventsList.innerHTML = '';
-        showMessage(feedMessage, error.message, 'hidden');
-        return;
-      }
+        if (requestId !== latestEventsRequestId || statusAtRequestStart !== activeStatus) return;
 
-      const records = (data ?? []).map((item) => adminEventRecordSchema.parse(item));
-      if (!records.length) {
-        if (eventsList) eventsList.innerHTML = '';
-        showQueueState(getEmptyFilterMessage(activeStatus));
-        if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, 0);
-        return;
-      }
+        if (error) {
+          showMessage(feedMessage, error.message, 'hidden');
+          return;
+        }
 
-      clearQueueState();
-      if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, records.length);
-      if (eventsList) {
-        eventsList.innerHTML = records.map(eventCardMarkup).join('');
+        currentRecords = (data ?? []).map((item) => adminEventRecordSchema.parse(item));
+        renderQueue();
+      } catch (error) {
+        if (requestId !== latestEventsRequestId || statusAtRequestStart !== activeStatus) return;
+        showMessage(feedMessage, error instanceof Error ? error.message : 'Unexpected admin error.', 'rejected');
+      } finally {
+        if (requestId === latestEventsRequestId) {
+          setQueueRefreshing(false);
+        }
       }
     }
 
-    async function syncWorkspace() {
-      await refreshCounts();
-      await loadEvents();
-      await fetchPublicSummary();
+    async function syncWorkspace({ background = false } = {}) {
+      let countsHealthy = true;
+
+      try {
+        await refreshCounts();
+      } catch (error) {
+        countsHealthy = false;
+        showMessage(
+          runtimeMessage,
+          error instanceof Error ? error.message : 'Queue counts are temporarily unavailable. Showing the last known totals.',
+          'hidden'
+        );
+      }
+
+      await loadEvents({ background });
+      const summaryHealthy = await fetchPublicSummary();
+
+      if (countsHealthy && summaryHealthy) {
+        clearMessage(runtimeMessage);
+      }
     }
 
     async function updateAuthUI(session) {
@@ -470,6 +573,8 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
         clearMessage(runtimeMessage);
         await syncWorkspace();
       } else {
+        currentRecords = [];
+        pendingMutations.clear();
         if (eventsList) eventsList.innerHTML = '';
       }
     }
@@ -477,8 +582,13 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
     async function mutateEvent(card, action) {
       if (!supabase) return;
       const id = card.dataset.eventId;
-      const clicked = card.querySelector(`[data-action="${action}"]`);
-      if (clicked) clicked.disabled = true;
+      const existingRecord = currentRecords.find((record) => record.id === id);
+      if (!existingRecord) return;
+
+      const snapshot = {
+        records: cloneRecords(currentRecords),
+        counts: { ...currentCounts }
+      };
 
       try {
         let patch = collectPatch(card);
@@ -491,6 +601,29 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
           };
         }
 
+        pendingMutations.set(id, action);
+
+        const optimisticRecord = {
+          ...existingRecord,
+          ...patch,
+          tags: Array.isArray(patch.tags) ? [...patch.tags] : existingRecord.tags
+        };
+
+        currentRecords = currentRecords
+          .map((record) => (record.id === id ? optimisticRecord : record))
+          .filter((record) => record.status === activeStatus);
+
+        if (action !== 'save' && existingRecord.status !== optimisticRecord.status) {
+          currentCounts = {
+            ...currentCounts,
+            [existingRecord.status]: Math.max(0, (currentCounts[existingRecord.status] || 0) - 1),
+            [optimisticRecord.status]: (currentCounts[optimisticRecord.status] || 0) + 1
+          };
+          renderCounts();
+        }
+
+        renderQueue();
+
         const { error } = await supabase
           .from('events')
           .update(patch)
@@ -498,16 +631,24 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
 
         if (error) throw error;
 
+        pendingMutations.delete(id);
+        renderQueue();
+
         showMessage(
           feedMessage,
           action === 'save' ? 'Edits saved successfully.' : `Event moved to ${patch.status}.`,
           action === 'save' ? 'hidden' : patch.status
         );
-        await syncWorkspace();
+        void syncWorkspace({ background: true }).catch((error) => {
+          showMessage(feedMessage, error instanceof Error ? error.message : 'Unexpected admin error.', 'rejected');
+        });
       } catch (error) {
+        pendingMutations.delete(id);
+        currentRecords = snapshot.records;
+        currentCounts = snapshot.counts;
+        renderCounts();
+        renderQueue();
         showMessage(feedMessage, error instanceof Error ? error.message : 'Unexpected admin error.', 'rejected');
-      } finally {
-        if (clicked) clicked.disabled = false;
       }
     }
 
@@ -523,7 +664,7 @@ const adminRedirectHref = withBase('/admin/', import.meta.env.BASE_URL);
     });
 
     refreshQueueButton?.addEventListener('click', async () => {
-      await syncWorkspace();
+      await syncWorkspace({ background: true });
     });
 
     statusFilterTabs.forEach((button) => {

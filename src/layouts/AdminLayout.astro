@@ -17,8 +17,6 @@ const {
 </BaseLayout>
 
 <style is:global>
-  @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
-
   :root {
     --admin-bg: #081120;
     --admin-bg-base: #07101e;
@@ -604,6 +602,7 @@ const {
     background: var(--admin-white-04);
     border-radius: var(--admin-radius-md);
     padding: var(--admin-space-lg) var(--admin-layout-content-inset-x);
+    transition: opacity 140ms ease, border-color 140ms ease, background-color 140ms ease;
   }
 
   .admin-empty__copy {
@@ -619,6 +618,7 @@ const {
     gap: var(--admin-stack-section);
     padding-inline: 0;
     min-width: 0;
+    transition: opacity 140ms ease;
   }
 
   .admin-event-card {
@@ -630,6 +630,7 @@ const {
     background: var(--admin-card-bg);
     box-shadow: var(--admin-shadow);
     border-left: 4px solid var(--admin-border-strong);
+    transition: opacity 140ms ease, border-color 140ms ease, background-color 140ms ease;
   }
 
   .admin-event-card[data-status="pending"] {
@@ -646,6 +647,10 @@ const {
 
   .admin-event-card[data-status="hidden"] {
     border-left-color: var(--admin-card-border-hidden);
+  }
+
+  .admin-event-card[data-busy="true"] {
+    opacity: 0.8;
   }
 
   .admin-event-card__head {
@@ -876,6 +881,11 @@ const {
   .admin-button:disabled {
     opacity: 0.6;
     cursor: wait;
+  }
+
+  .admin-workspace[data-queue-refreshing="true"] .admin-feed,
+  .admin-workspace[data-queue-refreshing="true"] .admin-empty {
+    opacity: 0.78;
   }
 
   body[data-admin-state="loading"] .admin-auth,

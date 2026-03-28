@@ -24,6 +24,7 @@ const eventHref = withBase(`/events/${event.slug}/`, import.meta.env.BASE_URL);
     </div>
     <div class="nav-row">
       <a class="button" href={eventHref}>View details</a>
+      <button class="secondary" type="button" data-share-trigger data-share-title={event.title} data-share-url={eventHref}>Share event</button>
     </div>
   </div>
 </article>

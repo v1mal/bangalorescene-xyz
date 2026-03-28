@@ -1,19 +1,12 @@
 ---
 import PublicLayout from '@/layouts/PublicLayout.astro';
-import EventCard from '@/components/EventCard.astro';
+import PublicEventFeed from '@/components/PublicEventFeed.astro';
 import { getUpcomingEvents } from '@/lib/content';
 import { withBase } from '@/lib/utils';
 
-let events = [];
-let error = '';
-
-try {
-  events = await getUpcomingEvents();
-} catch (cause) {
-  error = cause instanceof Error ? cause.message : 'Unable to load upcoming events.';
-}
-
 const archiveHref = withBase('/archive/', import.meta.env.BASE_URL);
+const upcomingFeedUrl = withBase('/data/events/upcoming.json', import.meta.env.BASE_URL);
+const upcomingEvents = await getUpcomingEvents();
 ---
 
 <PublicLayout title="bangalorescene.xyz">
@@ -39,15 +32,12 @@ const archiveHref = withBase('/archive/', import.meta.env.BASE_URL);
         <p class="section-copy">Fresh picks for Bangalore, presented as a clean public feed with direct event pages.</p>
       </div>
 
-      {error ? (
-        <div class="error-box">The public export could not be loaded: {error}</div>
-      ) : events.length === 0 ? (
-        <div class="empty">No approved upcoming events are available yet. The next export will repopulate this feed when items are approved.</div>
-      ) : (
-        <div class="event-grid">
-          {events.map((event) => <EventCard event={event} />)}
-        </div>
-      )}
+      <PublicEventFeed
+        feedUrl={upcomingFeedUrl}
+        initialItems={upcomingEvents}
+        loadingMessage="Loading upcoming events..."
+        emptyMessage="No approved upcoming events are available yet. The next export will repopulate this feed when items are approved."
+      />
     </section>
   </main>
 </PublicLayout>

@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { parsePublicCollection } from '@/lib/utils';
 import type { PublicEventRecord } from '@/lib/types';
 
 async function loadEventCollection(filename: 'upcoming.json' | 'archive.json') {
-  const path = fileURLToPath(new URL(`../../public/data/events/${filename}`, import.meta.url));
+  const path = resolve(process.cwd(), 'public', 'data', 'events', filename);
   const raw = JSON.parse(await readFile(path, 'utf8'));
   return parsePublicCollection(raw);
 }
