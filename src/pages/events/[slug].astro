@@ -1,0 +1,87 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import { getAllEventsBySlug } from '@/lib/content';
+import { formatEventDateRange, isPastEvent } from '@/lib/utils';
+
+export async function getStaticPaths() {
+  const events = await getAllEventsBySlug();
+  return [...events.values()].map((event) => ({
+    params: { slug: event.slug },
+    props: { event }
+  }));
+}
+
+const { event } = Astro.props;
+const archived = isPastEvent(event);
+---
+
+<PublicLayout title={`${event.title} | bangalorescene.xyz`} description={event.summary}>
+  <main class="shell event-detail-shell">
+    <section class="masthead">
+      <span class="eyebrow">{archived ? 'Archived event' : 'Upcoming event'}</span>
+      <h1 class="hero-title event-detail__hero-title">{event.title}</h1>
+      <p class="hero-copy">{event.summary}</p>
+      <div class="nav-row">
+        <a class="button" href={event.source_url} target="_blank" rel="noreferrer">Visit source listing</a>
+        <a class="ghost-link" href={archived ? '/archive/' : '/'}>{archived ? 'Back to archive' : 'Back to upcoming'}</a>
+      </div>
+    </section>
+
+    <section class="event-detail-grid">
+      <article class="panel media-panel">
+        {event.image_url && <img class="media-panel__image" src={event.image_url} alt={event.title} />}
+        <div class="media-panel__body">
+        <div class="tag-row">
+          <span class="tag">{event.category}</span>
+          {event.neighborhood && <span class="tag">{event.neighborhood}</span>}
+          {event.tags.map((tag) => <span class="tag">{tag}</span>)}
+        </div>
+        <h2 class="event-detail__section-title">Why this event matters</h2>
+        <p class="muted event-detail__summary">{event.summary}</p>
+        </div>
+      </article>
+
+      <aside class="panel">
+        <h3>At a glance</h3>
+        <div class="event-meta">
+          <span>{formatEventDateRange(event)}</span>
+          <span>{event.venue_name}</span>
+          {event.neighborhood && <span>{event.neighborhood}</span>}
+          {event.price_text && <span>{event.price_text}</span>}
+        </div>
+      </aside>
+    </section>
+  </main>
+</PublicLayout>
+
+<style>
+  .event-detail-shell {
+    --section-block-gap: var(--space-2xl);
+  }
+
+  .event-detail__hero-title {
+    max-width: 14ch;
+  }
+
+  .event-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(var(--detail-sidebar-min), 0.9fr);
+    gap: var(--detail-grid-gap);
+    align-items: start;
+  }
+
+  .event-detail__section-title,
+  .event-detail__summary {
+    margin: 0;
+  }
+
+  @media (max-width: 900px) {
+    .event-detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .event-detail-grid > aside {
+      order: -1;
+    }
+  }
+</style>

@@ -1,0 +1,29 @@
+---
+import { formatEventDateRange } from '@/lib/utils';
+import type { PublicEventRecord } from '@/lib/types';
+
+interface Props {
+  event: PublicEventRecord;
+  compact?: boolean;
+}
+
+const { event, compact = false } = Astro.props;
+const dateLabel = formatEventDateRange(event);
+---
+
+<article class={`event-card media-panel ${compact ? 'event-card--compact' : ''}`}>
+  {event.image_url && <img class="media-panel__image" src={event.image_url} alt={event.title} />}
+  <div class="media-panel__body">
+    <h3 class="event-card__title">
+      <a class="event-card__title-link" href={`/events/${event.slug}/`}>{event.title}</a>
+    </h3>
+    <div class="event-meta">
+      <span>{dateLabel}</span>
+      <span>{event.venue_name}</span>
+    </div>
+    <div class="nav-row">
+      <a class="button" href={`/events/${event.slug}/`}>View details</a>
+      <a class="ghost-link" href={event.source_url} target="_blank" rel="noreferrer">Original source</a>
+    </div>
+  </div>
+</article>

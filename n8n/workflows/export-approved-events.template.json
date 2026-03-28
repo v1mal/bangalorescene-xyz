@@ -1,0 +1,106 @@
+{
+  "name": "Export Approved Bangalore Events",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Hourly Export Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id, slug, title, summary, event_start_at, event_end_at, timezone, venue_name, neighborhood, category, price_text, source_url, image_url, tags\nfrom public.events\nwhere status = 'approved'\norder by event_start_at asc;"
+      },
+      "id": "fetch-approved-events",
+      "name": "Fetch Approved Events",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        500,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "replace-me",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst upcoming = [];\nconst archive = [];\nfor (const item of items) {\n  const record = item.json;\n  const edge = new Date(record.event_end_at || record.event_start_at);\n  if (edge.getTime() < now.getTime()) {\n    archive.push(record);\n  } else {\n    upcoming.push(record);\n  }\n}\nreturn [{ json: { generated_at: new Date().toISOString(), upcoming, archive } }];"
+      },
+      "id": "split-upcoming-and-archive",
+      "name": "Build Snapshot Payloads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "cat <<'EOF' > public/data/events/upcoming.json\n{{ JSON.stringify({ generated_at: $json.generated_at, items: $json.upcoming }, null, 2) }}\nEOF\n\ncat <<'EOF' > public/data/events/archive.json\n{{ JSON.stringify({ generated_at: $json.generated_at, items: $json.archive }, null, 2) }}\nEOF\n\ngit add public/data/events/upcoming.json public/data/events/archive.json\ngit commit -m \"chore: refresh event snapshot\"\ngit push origin main"
+      },
+      "id": "write-and-publish",
+      "name": "Write JSON And Publish",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Hourly Export Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Approved Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Approved Events": {
+      "main": [
+        [
+          {
+            "node": "Build Snapshot Payloads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Snapshot Payloads": {
+      "main": [
+        [
+          {
+            "node": "Write JSON And Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,50 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import EventCard from '@/components/EventCard.astro';
+import { getUpcomingEvents } from '@/lib/content';
+
+let events = [];
+let error = '';
+
+try {
+  events = await getUpcomingEvents();
+} catch (cause) {
+  error = cause instanceof Error ? cause.message : 'Unable to load upcoming events.';
+}
+---
+
+<PublicLayout title="bangalorescene.xyz">
+  <main class="shell">
+    <section class="masthead">
+      <span class="eyebrow">bangalorescene.xyz</span>
+      <h1 class="hero-title">Find the city’s next good excuse to step out.</h1>
+      <p class="hero-copy">
+        A reviewed Bangalore events feed for nights out, neighborhood gatherings, culture drops, and the plans worth forwarding.
+      </p>
+      <div class="nav-row">
+        <a class="button" href="#upcoming">Browse upcoming</a>
+        <a class="ghost-link" href="/archive/">Past archive</a>
+      </div>
+    </section>
+
+    <section id="upcoming">
+      <div class="section-header">
+        <div>
+          <span class="eyebrow">Upcoming</span>
+          <h2>Reviewed events ready to share</h2>
+        </div>
+        <p class="section-copy">Fresh picks for Bangalore, presented as a clean public feed with direct event pages.</p>
+      </div>
+
+      {error ? (
+        <div class="error-box">The public export could not be loaded: {error}</div>
+      ) : events.length === 0 ? (
+        <div class="empty">No approved upcoming events are available yet. The next export will repopulate this feed when items are approved.</div>
+      ) : (
+        <div class="event-grid">
+          {events.map((event) => <EventCard event={event} />)}
+        </div>
+      )}
+    </section>
+  </main>
+</PublicLayout>

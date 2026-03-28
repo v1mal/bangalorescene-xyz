@@ -1,0 +1,525 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Admin | bangalorescene.xyz">
+  <script is:inline>
+    document.body.dataset.adminState = 'loading';
+  </script>
+
+  <main class="shell admin-shell">
+    <section class="admin-message admin-message--setup" data-setup-message hidden></section>
+    <section class="admin-message admin-message--runtime" data-runtime-message hidden></section>
+
+    <section class="admin-auth" data-auth-panel>
+      <div class="admin-auth__brand">
+        <p class="admin-kicker">Private Admin</p>
+        <h1 class="admin-auth__title">Event moderation</h1>
+        <p class="admin-auth__copy">
+          A focused place to review what deserves to be published and what should stay out of the public feed.
+        </p>
+      </div>
+
+      <div class="admin-auth__panel">
+        <div class="admin-auth__panel-inner">
+          <p class="admin-kicker admin-kicker--muted">Google Sign-In</p>
+          <h2 class="admin-auth__panel-title">Moderate pending events</h2>
+          <p class="admin-auth__panel-copy">
+            Sign in with your approved Google account to enter the moderation workspace.
+          </p>
+
+          <button class="admin-button admin-button--primary admin-button--auth" type="button" data-login-button>
+            <span class="admin-google-mark" aria-hidden="true">
+              <svg viewBox="0 0 18 18" role="img" focusable="false">
+                <path
+                  fill="#4285F4"
+                  d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.56 2.68-3.86 2.68-6.62Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M9 18c2.43 0 4.46-.8 5.95-2.18l-2.92-2.26c-.8.54-1.83.86-3.03.86-2.33 0-4.3-1.57-5-3.68H.98V13.1A9 9 0 0 0 9 18Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M4 10.74A5.41 5.41 0 0 1 3.72 9c0-.6.1-1.18.28-1.74V4.9H.98A9 9 0 0 0 0 9c0 1.45.35 2.82.98 4.1L4 10.74Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M9 3.58c1.32 0 2.5.46 3.44 1.36l2.58-2.58C13.45.9 11.43 0 9 0A9 9 0 0 0 .98 4.9L4 7.26c.7-2.1 2.67-3.68 5-3.68Z"
+                />
+              </svg>
+            </span>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-workspace" data-admin-app>
+      <aside class="admin-sidebar admin-card">
+        <div class="admin-sidebar__block">
+          <p class="admin-kicker">Signed In As</p>
+          <p class="admin-sidebar__email" data-user-email></p>
+          <button class="admin-button admin-button--ghost" type="button" data-logout-button>Sign out</button>
+        </div>
+
+        <div class="admin-sidebar__divider"></div>
+
+        <div class="admin-sidebar__block">
+          <p class="admin-label">Status</p>
+          <div class="admin-tablist" role="tablist" aria-label="Status filters">
+            <button class="admin-tab" type="button" role="tab" data-status-filter-tab data-value="pending" aria-selected="true">
+              <span>Pending</span>
+              <span class="admin-tab__count" data-status-count>0</span>
+            </button>
+            <button class="admin-tab" type="button" role="tab" data-status-filter-tab data-value="approved" aria-selected="false">
+              <span>Approved</span>
+              <span class="admin-tab__count" data-status-count>0</span>
+            </button>
+            <button class="admin-tab" type="button" role="tab" data-status-filter-tab data-value="rejected" aria-selected="false">
+              <span>Rejected</span>
+              <span class="admin-tab__count" data-status-count>0</span>
+            </button>
+            <button class="admin-tab" type="button" role="tab" data-status-filter-tab data-value="hidden" aria-selected="false">
+              <span>Hidden</span>
+              <span class="admin-tab__count" data-status-count>0</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-sidebar__divider"></div>
+
+        <section class="admin-note">
+          <span class="admin-note__dot" aria-hidden="true"></span>
+          <p class="admin-note__copy">
+            Approved events belong in the next export snapshot. Until the publishing path is automated, keep the public JSON in sync manually.
+          </p>
+        </section>
+      </aside>
+
+      <div class="admin-main">
+        <section class="admin-banner">
+          <div class="admin-banner__copy">
+            <p class="admin-kicker">Private Admin</p>
+            <h2 class="admin-banner__title">bangalorescene.xyz moderation workspace</h2>
+            <p class="admin-banner__body">
+              Move quickly, but keep the bar high. Review the queue, correct details, and make the public scene page feel trustworthy.
+            </p>
+            <div class="admin-banner__meta">
+              <p class="admin-banner__summary" data-public-summary hidden></p>
+              <a class="admin-banner__link" href="/">Go to public site</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-message admin-message--feed" data-feed-message hidden></section>
+
+        <section class="admin-queue" data-queue-section>
+          <div class="admin-queue__head">
+            <div>
+              <p class="admin-kicker admin-kicker--muted">Workspace</p>
+              <h3 class="admin-queue__title" data-queue-title>Pending queue (0)</h3>
+            </div>
+            <button class="admin-button admin-button--ghost" type="button" data-refresh-queue>Refresh queue</button>
+          </div>
+
+          <section class="admin-empty" data-list-message hidden></section>
+          <section class="admin-feed" data-events-list></section>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    import { createBrowserSupabaseClient } from '@/lib/supabase';
+    import { adminEventRecordSchema } from '@/lib/types';
+
+    const supabase = createBrowserSupabaseClient();
+    const setupMessage = document.querySelector('[data-setup-message]');
+    const runtimeMessage = document.querySelector('[data-runtime-message]');
+    const feedMessage = document.querySelector('[data-feed-message]');
+    const authPanel = document.querySelector('[data-auth-panel]');
+    const adminApp = document.querySelector('[data-admin-app]');
+    const listMessage = document.querySelector('[data-list-message]');
+    const eventsList = document.querySelector('[data-events-list]');
+    const queueTitle = document.querySelector('[data-queue-title]');
+    const refreshQueueButton = document.querySelector('[data-refresh-queue]');
+    const loginButton = document.querySelector('[data-login-button]');
+    const logoutButton = document.querySelector('[data-logout-button]');
+    const userEmail = document.querySelector('[data-user-email]');
+    const publicSummary = document.querySelector('[data-public-summary]');
+    const statusFilterTabs = [...document.querySelectorAll('[data-status-filter-tab]')];
+
+    let activeStatus = 'pending';
+    let currentCounts = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      hidden: 0
+    };
+
+    const statusLabels = {
+      pending: 'Pending queue',
+      approved: 'Approved events',
+      rejected: 'Rejected events',
+      hidden: 'Hidden events'
+    };
+
+    const actionToStatus = {
+      approve: 'approved',
+      reject: 'rejected',
+      hide: 'hidden',
+      pending: 'pending'
+    };
+
+    const statusTone = {
+      pending: 'pending',
+      approved: 'approved',
+      rejected: 'rejected',
+      hidden: 'hidden'
+    };
+
+    function setAdminState(state) {
+      document.body.dataset.adminState = state;
+    }
+
+    function showMessage(element, message, status = 'hidden') {
+      if (!element) return;
+      element.hidden = false;
+      element.dataset.status = status;
+      element.innerHTML = `
+        <div class="admin-message__inner">
+          <p class="admin-message__label">${status === 'hidden' ? 'Notice' : statusLabels[status] || 'Notice'}</p>
+          <p class="admin-message__text">${message}</p>
+        </div>
+      `;
+    }
+
+    function clearMessage(element) {
+      if (!element) return;
+      element.hidden = true;
+      element.innerHTML = '';
+      delete element.dataset.status;
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function formatAdminDisplayDate(value) {
+      return new Intl.DateTimeFormat('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Kolkata'
+      }).format(new Date(value));
+    }
+
+    function toBangaloreDateTimeInputValue(value) {
+      const date = new Date(value);
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(date);
+      const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+      return `${map.year}-${map.month}-${map.day}T${map.hour}:${map.minute}`;
+    }
+
+    function bangaloreInputToIso(value) {
+      if (!value) return null;
+      return `${value}:00+05:30`;
+    }
+
+    function getQueueTitle(status, count) {
+      return `${statusLabels[status]} (${count})`;
+    }
+
+    function getEmptyFilterMessage(status) {
+      if (status === 'pending') return 'No new events are waiting for review.';
+      if (status === 'approved') return 'No approved events are available right now.';
+      if (status === 'rejected') return 'No rejected events are available right now.';
+      return 'No hidden events are available right now.';
+    }
+
+    async function fetchPublicSummary() {
+      if (!publicSummary) return;
+
+      try {
+        const response = await fetch('/data/events/upcoming.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Unexpected response ${response.status}`);
+        const payload = await response.json();
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        publicSummary.hidden = false;
+        publicSummary.textContent = items.length
+          ? `${items.length} upcoming event${items.length === 1 ? '' : 's'} currently live on the public site`
+          : 'No public events are currently live';
+      } catch (_error) {
+        publicSummary.hidden = true;
+        publicSummary.textContent = '';
+      }
+    }
+
+    function renderCounts() {
+      statusFilterTabs.forEach((tab) => {
+        const value = tab.dataset.value;
+        const count = currentCounts[value] || 0;
+        const countEl = tab.querySelector('[data-status-count]');
+        if (countEl) countEl.textContent = String(count);
+      });
+    }
+
+    async function refreshCounts() {
+      const statuses = ['pending', 'approved', 'rejected', 'hidden'];
+      const results = await Promise.all(
+        statuses.map(async (status) => {
+          const { count } = await supabase
+            .from('events')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', status);
+          return [status, count || 0];
+        })
+      );
+
+      currentCounts = Object.fromEntries(results);
+      renderCounts();
+    }
+
+    function showQueueState(message) {
+      if (!listMessage) return;
+      listMessage.hidden = false;
+      listMessage.innerHTML = `<p class="admin-empty__copy">${message}</p>`;
+    }
+
+    function clearQueueState() {
+      if (!listMessage) return;
+      listMessage.hidden = true;
+      listMessage.innerHTML = '';
+    }
+
+    function eventCardMarkup(event) {
+      return `
+        <article class="admin-event-card" data-event-id="${event.id}" data-status="${event.status}">
+          <div class="admin-event-card__head">
+            <div class="admin-event-card__title-wrap">
+              <div class="admin-badges">
+                <span class="admin-badge admin-badge--${statusTone[event.status]}">${event.status}</span>
+                <span class="admin-badge admin-badge--neutral">${escapeHtml(event.category || 'General')}</span>
+                ${event.score == null ? '' : `<span class="admin-badge admin-badge--neutral">Score ${escapeHtml(event.score)}</span>`}
+              </div>
+              <h4 class="admin-event-card__title">${escapeHtml(event.title)}</h4>
+            </div>
+            <div class="admin-event-card__meta">
+              <div class="admin-event-card__meta-row">
+                <span>${formatAdminDisplayDate(event.event_start_at)}</span>
+                <span>${escapeHtml(event.source_name || 'Unknown source')}</span>
+                <span>ID ${escapeHtml(event.id)}</span>
+              </div>
+              <div class="admin-event-card__meta-row">
+                <span>${escapeHtml(event.venue_name || 'Venue TBD')}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-field-grid">
+            <label class="admin-field">
+              <span class="admin-field__label">Title</span>
+              <input name="title" value="${escapeHtml(event.title)}" />
+            </label>
+            <label class="admin-field">
+              <span class="admin-field__label">Start time</span>
+              <input name="event_start_at" type="datetime-local" value="${toBangaloreDateTimeInputValue(event.event_start_at)}" />
+            </label>
+            <label class="admin-field">
+              <span class="admin-field__label">End time</span>
+              <input name="event_end_at" type="datetime-local" value="${event.event_end_at ? toBangaloreDateTimeInputValue(event.event_end_at) : ''}" />
+            </label>
+            <label class="admin-field admin-field--venue">
+              <span class="admin-field__label">Venue</span>
+              <input name="venue_name" value="${escapeHtml(event.venue_name || '')}" />
+            </label>
+            <label class="admin-field admin-field--source-url">
+              <span class="admin-field__label">Source URL</span>
+              <input name="source_url" type="url" value="${escapeHtml(event.source_url)}" />
+            </label>
+            <label class="admin-field admin-field--tags">
+              <span class="admin-field__label">Tags</span>
+              <input name="tags" value="${escapeHtml((event.tags || []).join(', '))}" />
+            </label>
+          </div>
+
+          <label class="admin-field">
+            <span class="admin-field__label">Summary</span>
+            <textarea name="summary">${escapeHtml(event.summary || '')}</textarea>
+          </label>
+
+          <div class="admin-context-grid">
+            <section class="admin-context-card">
+              <p class="admin-field__label">Why it exists</p>
+              <p>${escapeHtml(event.reason || 'No machine rationale supplied.')}</p>
+            </section>
+            <section class="admin-context-card">
+              <p class="admin-field__label">Suggestion</p>
+              <p>${escapeHtml(event.suggestion || 'No recommendation supplied.')}</p>
+            </section>
+          </div>
+
+          <div class="admin-actions">
+            <button class="admin-button admin-button--primary" data-action="approve">Approve</button>
+            <button class="admin-button admin-button--ghost" data-action="save">Save edits</button>
+            <button class="admin-button admin-button--ghost" data-action="pending">Restore to pending</button>
+            <button class="admin-button admin-button--ghost admin-button--warn" data-action="hide">Hide</button>
+            <button class="admin-button admin-button--ghost admin-button--danger" data-action="reject">Reject</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function collectPatch(card) {
+      const get = (name) => card.querySelector(`[name="${name}"]`);
+      return {
+        title: get('title').value.trim(),
+        summary: get('summary').value.trim(),
+        venue_name: get('venue_name').value.trim(),
+        source_url: get('source_url').value.trim(),
+        event_start_at: bangaloreInputToIso(get('event_start_at').value),
+        event_end_at: bangaloreInputToIso(get('event_end_at').value),
+        tags: get('tags').value.split(',').map((tag) => tag.trim()).filter(Boolean)
+      };
+    }
+
+    async function loadEvents() {
+      clearMessage(feedMessage);
+      if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, currentCounts[activeStatus] || 0);
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('status', activeStatus)
+        .order('event_start_at', { ascending: true });
+
+      if (error) {
+        if (eventsList) eventsList.innerHTML = '';
+        showMessage(feedMessage, error.message, 'hidden');
+        return;
+      }
+
+      const records = (data ?? []).map((item) => adminEventRecordSchema.parse(item));
+      if (!records.length) {
+        if (eventsList) eventsList.innerHTML = '';
+        showQueueState(getEmptyFilterMessage(activeStatus));
+        if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, 0);
+        return;
+      }
+
+      clearQueueState();
+      if (queueTitle) queueTitle.textContent = getQueueTitle(activeStatus, records.length);
+      if (eventsList) {
+        eventsList.innerHTML = records.map(eventCardMarkup).join('');
+      }
+    }
+
+    async function syncWorkspace() {
+      await refreshCounts();
+      await loadEvents();
+      await fetchPublicSummary();
+    }
+
+    async function updateAuthUI(session) {
+      const signedIn = Boolean(session?.user);
+      setAdminState(signedIn ? 'signed-in' : 'signed-out');
+      if (userEmail) userEmail.textContent = signedIn ? session.user.email : '';
+      if (logoutButton) logoutButton.disabled = !signedIn;
+
+      if (signedIn) {
+        clearMessage(runtimeMessage);
+        await syncWorkspace();
+      } else {
+        if (eventsList) eventsList.innerHTML = '';
+      }
+    }
+
+    async function mutateEvent(card, action) {
+      const id = card.dataset.eventId;
+      const clicked = card.querySelector(`[data-action="${action}"]`);
+      if (clicked) clicked.disabled = true;
+
+      try {
+        let patch = collectPatch(card);
+        if (action !== 'save') {
+          patch = {
+            ...patch,
+            status: actionToStatus[action],
+            last_reviewed_at: new Date().toISOString(),
+            published_at: action === 'approve' ? new Date().toISOString() : null
+          };
+        }
+
+        const { error } = await supabase
+          .from('events')
+          .update(patch)
+          .eq('id', id);
+
+        if (error) throw error;
+
+        showMessage(
+          feedMessage,
+          action === 'save' ? 'Edits saved successfully.' : `Event moved to ${patch.status}.`,
+          action === 'save' ? 'hidden' : patch.status
+        );
+        await syncWorkspace();
+      } catch (error) {
+        showMessage(feedMessage, error instanceof Error ? error.message : 'Unexpected admin error.', 'rejected');
+      } finally {
+        if (clicked) clicked.disabled = false;
+      }
+    }
+
+    loginButton?.addEventListener('click', async () => {
+      const redirectTo = `${window.location.origin}/admin/`;
+      await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+    });
+
+    logoutButton?.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+    });
+
+    refreshQueueButton?.addEventListener('click', async () => {
+      await syncWorkspace();
+    });
+
+    statusFilterTabs.forEach((button) => {
+      button.addEventListener('click', async () => {
+        activeStatus = button.dataset.value;
+        statusFilterTabs.forEach((item) => item.setAttribute('aria-selected', String(item === button)));
+        await loadEvents();
+      });
+    });
+
+    eventsList?.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      const action = target.dataset.action;
+      if (!action) return;
+      const card = target.closest('[data-event-id]');
+      if (!(card instanceof HTMLElement)) return;
+      await mutateEvent(card, action);
+    });
+
+    const { data } = await supabase.auth.getSession();
+    setAdminState('loading');
+    await updateAuthUI(data.session);
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      await updateAuthUI(session);
+    });
+  </script>
+</AdminLayout>

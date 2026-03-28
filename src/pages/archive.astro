@@ -1,0 +1,50 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import EventCard from '@/components/EventCard.astro';
+import { getArchiveEvents } from '@/lib/content';
+
+let events = [];
+let error = '';
+
+try {
+  events = await getArchiveEvents();
+} catch (cause) {
+  error = cause instanceof Error ? cause.message : 'Unable to load archive events.';
+}
+---
+
+<PublicLayout title="Archive | bangalorescene.xyz">
+  <main class="shell">
+    <section class="masthead">
+      <span class="eyebrow">Archive</span>
+      <h1 class="hero-title">Past events, kept searchable after the date passes.</h1>
+      <p class="hero-copy">
+        A running archive of previously approved Bangalore events, preserved so good listings stay referenceable after they end.
+      </p>
+      <div class="nav-row">
+        <a class="button" href="/">Back to upcoming</a>
+        <a class="ghost-link" href="/admin/">Curator admin</a>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <div>
+          <span class="eyebrow">Past Listings</span>
+          <h2>Event history</h2>
+        </div>
+        <p class="section-copy">Older listings stay browsable here once they move out of the live feed.</p>
+      </div>
+
+      {error ? (
+        <div class="error-box">The archive export could not be loaded: {error}</div>
+      ) : events.length === 0 ? (
+        <div class="empty">No archived events yet. Expired approved listings will appear here automatically.</div>
+      ) : (
+        <div class="event-grid">
+          {events.map((event) => <EventCard event={event} compact />)}
+        </div>
+      )}
+    </section>
+  </main>
+</PublicLayout>
