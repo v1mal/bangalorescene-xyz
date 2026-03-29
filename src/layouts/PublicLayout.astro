@@ -5,11 +5,13 @@ import { withBase } from '@/lib/utils';
 interface Props {
   title: string;
   description?: string;
+  showFooter?: boolean;
 }
 
 const {
   title,
-  description = 'bangalorescene.xyz is a curated Bangalore events platform with a static public archive and lightweight moderation admin.'
+  description = 'bangalorescene.xyz is a curated Bangalore events platform with a static public archive and lightweight moderation admin.',
+  showFooter = true
 } = Astro.props;
 
 const upcomingHref = withBase('/', import.meta.env.BASE_URL);
@@ -23,44 +25,46 @@ const termsHref = withBase('/terms/', import.meta.env.BASE_URL);
 <BaseLayout title={title} description={description}>
     <div class="site-canvas-bg" aria-hidden="true"></div>
     <slot />
-    <footer class="site-footer">
-      <div class="site-footer__inner">
-        <div class="site-footer__brand">
-          <p class="site-footer__title">bangalorescene.xyz</p>
-          <p class="site-footer__copy">A reviewed Bangalore events feed with a simple archive and direct event pages.</p>
-        </div>
-        <div class="site-footer__columns">
-          <nav class="site-footer__column" aria-label="Browse">
-            <p class="site-footer__heading">Browse</p>
-            <a href={upcomingHref}>Upcoming</a>
-            <a href={archiveHref}>Archive</a>
-          </nav>
-          <nav class="site-footer__column" aria-label="Explore">
-            <p class="site-footer__heading">Explore</p>
-            <a href={aboutHref}>About</a>
-            <a href={contactHref}>Contact</a>
-          </nav>
-          <nav class="site-footer__column" aria-label="Editorial">
-            <p class="site-footer__heading">Editorial</p>
-            <a href={archiveHref}>Past archive</a>
-            <a href={contactHref}>Suggest an update</a>
-          </nav>
-          <nav class="site-footer__column" aria-label="Legal">
-            <p class="site-footer__heading">Legal</p>
-            <a href={privacyHref}>Privacy Policy</a>
-            <a href={termsHref}>Terms</a>
-          </nav>
-        </div>
-        <div class="site-footer__bottom">
-          <p class="site-footer__note">Curated for Bangalore. Static public feed, direct event pages, and a lightweight editorial workflow.</p>
-          <div class="site-footer__bottom-links">
-            <a href={archiveHref}>Archive</a>
-            <a href={privacyHref}>Privacy</a>
-            <a href={contactHref}>Contact</a>
+    {showFooter && (
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <div class="site-footer__brand">
+            <p class="site-footer__title">bangalorescene.xyz</p>
+            <p class="site-footer__copy">A reviewed Bangalore events feed with a simple archive and direct event pages.</p>
+          </div>
+          <div class="site-footer__columns">
+            <nav class="site-footer__column" aria-label="Browse">
+              <p class="site-footer__heading">Browse</p>
+              <a href={upcomingHref}>Upcoming</a>
+              <a href={archiveHref}>Archive</a>
+            </nav>
+            <nav class="site-footer__column" aria-label="Explore">
+              <p class="site-footer__heading">Explore</p>
+              <a href={aboutHref}>About</a>
+              <a href={contactHref}>Contact</a>
+            </nav>
+            <nav class="site-footer__column" aria-label="Editorial">
+              <p class="site-footer__heading">Editorial</p>
+              <a href={archiveHref}>Past archive</a>
+              <a href={contactHref}>Suggest an update</a>
+            </nav>
+            <nav class="site-footer__column" aria-label="Legal">
+              <p class="site-footer__heading">Legal</p>
+              <a href={privacyHref}>Privacy Policy</a>
+              <a href={termsHref}>Terms</a>
+            </nav>
+          </div>
+          <div class="site-footer__bottom">
+            <p class="site-footer__note">Curated for Bangalore. Static public feed, direct event pages, and a lightweight editorial workflow.</p>
+            <div class="site-footer__bottom-links">
+              <a href={archiveHref}>Archive</a>
+              <a href={privacyHref}>Privacy</a>
+              <a href={contactHref}>Contact</a>
+            </div>
           </div>
         </div>
-      </div>
-    </footer>
+      </footer>
+    )}
 </BaseLayout>
 
 <style is:global>
