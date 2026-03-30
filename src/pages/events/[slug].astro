@@ -13,7 +13,6 @@ export async function getStaticPaths() {
 
 const { event } = Astro.props;
 const archived = isPastEvent(event);
-const backHref = withBase(archived ? '/archive/' : '/events/', import.meta.env.BASE_URL);
 ---
 
 <PublicLayout title={`${event.title} | bangalorescene.xyz`} description={event.summary}>
@@ -25,7 +24,6 @@ const backHref = withBase(archived ? '/archive/' : '/events/', import.meta.env.B
       <div class="nav-row">
         <a class="button" href={event.source_url} target="_blank" rel="noreferrer">Visit source listing</a>
         <button class="secondary" type="button" data-share-trigger>Share event</button>
-        <a class="ghost-link" href={backHref}>{archived ? 'Back to archive' : 'Back to upcoming'}</a>
       </div>
       <p class="muted event-detail__share-status" data-share-status hidden></p>
     </section>
