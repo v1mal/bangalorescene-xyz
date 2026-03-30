@@ -1,4 +1,6 @@
 ---
+import '@fontsource-variable/plus-jakarta-sans';
+
 interface Props {
   title: string;
   description?: string;
@@ -16,12 +18,6 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=block"
-    />
     <title>{title}</title>
   </head>
   <body>
