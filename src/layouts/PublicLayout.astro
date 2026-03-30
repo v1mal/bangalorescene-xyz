@@ -14,7 +14,7 @@ const {
   showFooter = true
 } = Astro.props;
 
-const upcomingHref = withBase('/', import.meta.env.BASE_URL);
+const upcomingHref = withBase('/events/', import.meta.env.BASE_URL);
 const archiveHref = withBase('/archive/', import.meta.env.BASE_URL);
 const aboutHref = withBase('/about/', import.meta.env.BASE_URL);
 const contactHref = withBase('/contact/', import.meta.env.BASE_URL);
@@ -316,7 +316,7 @@ const termsHref = withBase('/terms/', import.meta.env.BASE_URL);
 
   .event-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--event-grid-column-min)), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--event-grid-column-min)), 1fr));
     gap: var(--event-grid-gap);
     align-items: start;
   }

@@ -1,0 +1,42 @@
+---
+import PublicLayout from '@/layouts/PublicLayout.astro';
+import PublicEventFeed from '@/components/PublicEventFeed.astro';
+import { getUpcomingEvents } from '@/lib/content';
+import { withBase } from '@/lib/utils';
+
+const archiveHref = withBase('/archive/', import.meta.env.BASE_URL);
+const upcomingFeedUrl = withBase('/data/events/upcoming.json', import.meta.env.BASE_URL);
+const upcomingEvents = await getUpcomingEvents();
+---
+
+<PublicLayout title="Events | bangalorescene.xyz">
+  <main class="shell">
+    <section class="masthead">
+      <span class="eyebrow">Upcoming</span>
+      <h1 class="hero-title">Reviewed Bangalore events, ready to browse.</h1>
+      <p class="hero-copy">
+        A curated public feed of upcoming gigs, gatherings, screenings, and city nights worth stepping out for.
+      </p>
+      <div class="nav-row">
+        <a class="button" href={archiveHref}>Browse archive</a>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <div>
+          <span class="eyebrow">Live Feed</span>
+          <h2>Upcoming events</h2>
+        </div>
+        <p class="section-copy">Fresh approved listings published from the current export.</p>
+      </div>
+
+      <PublicEventFeed
+        feedUrl={upcomingFeedUrl}
+        initialItems={upcomingEvents}
+        loadingMessage="Loading upcoming events..."
+        emptyMessage="No upcoming events are live right now. New approved listings will appear here automatically."
+      />
+    </section>
+  </main>
+</PublicLayout>

@@ -13,7 +13,7 @@ export async function getStaticPaths() {
 
 const { event } = Astro.props;
 const archived = isPastEvent(event);
-const backHref = withBase(archived ? '/archive/' : '/', import.meta.env.BASE_URL);
+const backHref = withBase(archived ? '/archive/' : '/events/', import.meta.env.BASE_URL);
 ---
 
 <PublicLayout title={`${event.title} | bangalorescene.xyz`} description={event.summary}>
