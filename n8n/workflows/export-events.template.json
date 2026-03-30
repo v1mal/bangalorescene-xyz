@@ -1,0 +1,292 @@
+{
+  "name": "BangaloreScene - Export Events",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 160]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    supabaseUrl: \"https://jibqnhaojplcvzqfxfiu.supabase.co\",\n    githubOwner: \"v1mal\",\n    githubRepo: \"bangalorescene-xyz\",\n    githubBranch: \"main\",\n    upcomingPath: \"public/data/events/upcoming.json\",\n    archivePath: \"public/data/events/archive.json\"\n  }\n}];"
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [272, 80]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Config').item.json.supabaseUrl + '/rest/v1/public_approved_events?select=id,slug,title,summary,event_start_at,event_end_at,timezone,venue_name,neighborhood,category,price_text,source_url,image_url,tags&order=event_start_at.asc' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {}
+      },
+      "id": "fetch-approved-events",
+      "name": "Fetch Approved Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [528, 80],
+      "credentials": {
+        "supabaseApi": {
+          "id": "replace-me",
+          "name": "Supabase-BangaloreScene"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = Array.isArray($input.first().json)\n  ? $input.first().json\n  : $input.all().map(i => i.json);\n\nconst now = new Date();\nconst generated_at = now.toISOString();\nconst upcoming = [];\nconst archive = [];\n\nfor (const row of rows) {\n  const edge = new Date(row.event_end_at || row.event_start_at);\n  if (edge.getTime() < now.getTime()) {\n    archive.push(row);\n  } else {\n    upcoming.push(row);\n  }\n}\n\n// Sort: upcoming by start ascending, archive by start descending\nupcoming.sort((a, b) => new Date(a.event_start_at) - new Date(b.event_start_at));\narchive.sort((a, b) => new Date(b.event_start_at) - new Date(a.event_start_at));\n\nconst upcomingJson = JSON.stringify({ generated_at, items: upcoming }, null, 2) + '\\n';\nconst archiveJson = JSON.stringify({ generated_at, items: archive }, null, 2) + '\\n';\n\nreturn [{\n  json: {\n    upcomingCount: upcoming.length,\n    archiveCount: archive.length,\n    upcomingContent: Buffer.from(upcomingJson, 'utf8').toString('base64'),\n    archiveContent: Buffer.from(archiveJson, 'utf8').toString('base64')\n  }\n}];"
+      },
+      "id": "build-export-payloads",
+      "name": "Build Export Payloads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [784, 80]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Config').item.json.githubOwner }}/{{ $('Config').item.json.githubRepo }}/contents/{{ $('Config').item.json.upcomingPath }}?ref={{ $('Config').item.json.githubBranch }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {}
+      },
+      "id": "get-upcoming-sha",
+      "name": "Get upcoming.json SHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, 80],
+      "credentials": {
+        "githubApi": {
+          "id": "replace-me",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const exportData = $('Build Export Payloads').item.json;\nconst fileSha = $('Get upcoming.json SHA').item.json.sha;\n\nconst commitBody = {\n  message: `chore: export ${exportData.upcomingCount} upcoming, ${exportData.archiveCount} archived events`,\n  content: exportData.upcomingContent,\n  branch: $('Config').item.json.githubBranch\n};\nif (fileSha) commitBody.sha = fileSha;\n\nreturn [{ json: { commitBody } }];"
+      },
+      "id": "build-upcoming-commit",
+      "name": "Build Upcoming Commit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1296, 80]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $('Config').item.json.githubOwner }}/{{ $('Config').item.json.githubRepo }}/contents/{{ $('Config').item.json.upcomingPath }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.commitBody }}",
+        "options": {}
+      },
+      "id": "commit-upcoming",
+      "name": "Commit upcoming.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1552, 80],
+      "credentials": {
+        "githubApi": {
+          "id": "replace-me",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Config').item.json.githubOwner }}/{{ $('Config').item.json.githubRepo }}/contents/{{ $('Config').item.json.archivePath }}?ref={{ $('Config').item.json.githubBranch }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "options": {}
+      },
+      "id": "get-archive-sha",
+      "name": "Get archive.json SHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1808, 80],
+      "credentials": {
+        "githubApi": {
+          "id": "replace-me",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const exportData = $('Build Export Payloads').item.json;\nconst fileSha = $('Get archive.json SHA').item.json.sha;\n\nconst commitBody = {\n  message: `chore: export ${exportData.archiveCount} archived events`,\n  content: exportData.archiveContent,\n  branch: $('Config').item.json.githubBranch\n};\nif (fileSha) commitBody.sha = fileSha;\n\nreturn [{ json: { commitBody } }];"
+      },
+      "id": "build-archive-commit",
+      "name": "Build Archive Commit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2064, 80]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $('Config').item.json.githubOwner }}/{{ $('Config').item.json.githubRepo }}/contents/{{ $('Config').item.json.archivePath }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.commitBody }}",
+        "options": {}
+      },
+      "id": "commit-archive",
+      "name": "Commit archive.json",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2320, 80],
+      "credentials": {
+        "githubApi": {
+          "id": "replace-me",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Approved Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Approved Events": {
+      "main": [
+        [
+          {
+            "node": "Build Export Payloads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Export Payloads": {
+      "main": [
+        [
+          {
+            "node": "Get upcoming.json SHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get upcoming.json SHA": {
+      "main": [
+        [
+          {
+            "node": "Build Upcoming Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Upcoming Commit": {
+      "main": [
+        [
+          {
+            "node": "Commit upcoming.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit upcoming.json": {
+      "main": [
+        [
+          {
+            "node": "Get archive.json SHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get archive.json SHA": {
+      "main": [
+        [
+          {
+            "node": "Build Archive Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Archive Commit": {
+      "main": [
+        [
+          {
+            "node": "Commit archive.json",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

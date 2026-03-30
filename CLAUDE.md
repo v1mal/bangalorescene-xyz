@@ -8,7 +8,7 @@ Curated Bangalore events platform. Static public site + private moderation admin
 - **Backend:** Supabase (Postgres + Edge Functions + Google OAuth)
 - **Newsletter:** Brevo Contacts API via Supabase Edge Function
 - **Ingest pipeline:** n8n → Google Sheet intake → AI enrichment (Claude) → Supabase upsert
-- **Export pipeline:** n8n (templated, not fully live)
+- **Export pipeline:** n8n → Supabase fetch → split upcoming/archive → GitHub Contents API commit → auto-deploy
 - **Deploy:** GitHub Actions → GitHub Pages, custom domain `bangalorescene.xyz`
 
 ## Routes
@@ -65,6 +65,7 @@ public/data/events/
 
 n8n/workflows/export-approved-events.template.json
 n8n/workflows/ingest-events.template.json     ⚠️ Baseline only — live workflow configured in n8n UI
+n8n/workflows/export-events.template.json     Export pipeline: Supabase → GitHub → deploy
 
 .github/workflows/deploy.yml
 astro.config.mjs
@@ -109,7 +110,7 @@ Footer and hero text use the same inset rhythm across public and admin.
 
 ## Known Gaps
 
-- n8n ingest workflow is live; export flow is templated but not wired yet
+- n8n ingest and export workflows are both live
 - `ingest-events.template.json` is a baseline — the live workflow in n8n UI has diverged (Supabase REST API, Build LLM Request code node, Raw body types). Export from n8n to keep in sync.
 - Google Sheet ID: `19nQa_D4zGIGx05mGpjkFjIr_8KXAShjyc09B41qj3Iw`
 - Footer pages (About, Contact, Privacy, Terms) are stubs
