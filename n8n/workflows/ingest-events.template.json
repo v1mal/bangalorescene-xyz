@@ -1,13 +1,13 @@
 {
-  "name": "Ingest Bangalore Events",
+  "name": "BangaloreScene Event Inbox",
   "nodes": [
     {
       "parameters": {
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 3
+              "field": "minutes",
+              "minutesInterval": 15
             }
           ]
         }
@@ -16,41 +16,383 @@
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [
-        280,
-        260
-      ]
+      "position": [100, 300]
     },
     {
       "parameters": {
-        "jsCode": "const sampleSources = [\n  {\n    source_name: 'Sample feed',\n    source_event_id: 'sample-feed-001',\n    title: 'Bangalore design salon',\n    summary: 'Imported placeholder event from a source feed.',\n    description: 'Replace this Function node with RSS/API/scrape normalization logic.',\n    source_url: 'https://example.com/design-salon',\n    event_start_at: '2026-04-05T18:30:00+05:30',\n    event_end_at: '2026-04-05T20:30:00+05:30',\n    timezone: 'Asia/Kolkata',\n    venue_name: 'Residency Road Studio',\n    venue_address: 'Residency Road, Bangalore',\n    neighborhood: 'Residency Road',\n    category: 'Design',\n    price_text: 'Invite only',\n    image_url: 'https://example.com/design.jpg',\n    reason: 'Source matched Bangalore + event keywords.',\n    suggestion: 'Review and approve if the event is still upcoming.',\n    score: 0.81,\n    tags: ['design', 'talks']\n  }\n];\nreturn sampleSources.map((item) => ({ json: item }));"
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "=replace-me-with-sheet-id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Event Inbox"
+        },
+        "options": {
+          "range": "A:Q"
+        }
       },
-      "id": "normalize-items",
-      "name": "Normalize Source Records",
+      "id": "read-sheet",
+      "name": "Read Unprocessed Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [320, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "replace-me",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter to only unprocessed rows (status column is empty) that have a URL.\n// Also capture the row number for later sheet updates.\nconst results = [];\nfor (const item of $input.all()) {\n  const url = (item.json.url || '').trim();\n  const status = (item.json.status || '').trim();\n  const processedAt = (item.json.processed_at || '').trim();\n\n  // Skip rows without a URL or that already have a status\n  if (!url) continue;\n  if (status && status !== 'processing') continue;\n\n  // Crash recovery: retry rows stuck in 'processing' for >30 min\n  if (status === 'processing' && processedAt) {\n    const stuckSince = new Date(processedAt).getTime();\n    if (Date.now() - stuckSince < 30 * 60 * 1000) continue;\n  }\n\n  results.push({ json: { ...item.json, _row_number: item.json.row_number } });\n}\nreturn results;"
+      },
+      "id": "filter-unprocessed",
+      "name": "Filter Unprocessed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        520,
-        260
-      ]
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-batches",
+      "name": "Process One at a Time",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "=replace-me-with-sheet-id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Event Inbox"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "processing",
+            "processed_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "handlingExtraData": "ignoreIt",
+          "matchingColumns": ["row_number"]
+        }
+      },
+      "id": "mark-processing",
+      "name": "Mark Processing",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [980, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "replace-me",
+          "name": "Google Sheets OAuth2"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "insert into public.events (\n  slug,\n  status,\n  title,\n  summary,\n  description,\n  source_url,\n  source_name,\n  source_event_id,\n  event_start_at,\n  event_end_at,\n  timezone,\n  venue_name,\n  venue_address,\n  neighborhood,\n  category,\n  price_text,\n  image_url,\n  reason,\n  suggestion,\n  score,\n  tags\n)\nvalues (\n  {{$json.slug || $json.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80)}},\n  'pending',\n  {{$json.title}},\n  {{$json.summary || ''}},\n  {{$json.description || ''}},\n  {{$json.source_url}},\n  {{$json.source_name || ''}},\n  {{$json.source_event_id || ''}},\n  {{$json.event_start_at}},\n  {{$json.event_end_at || null}},\n  {{$json.timezone || 'Asia/Kolkata'}},\n  {{$json.venue_name || ''}},\n  {{$json.venue_address || ''}},\n  {{$json.neighborhood || ''}},\n  {{$json.category || 'General'}},\n  {{$json.price_text || ''}},\n  {{$json.image_url || null}},\n  {{$json.reason || ''}},\n  {{$json.suggestion || ''}},\n  {{$json.score || null}},\n  {{$json.tags || []}}\n)\non conflict (slug)\ndo update set\n  title = excluded.title,\n  summary = excluded.summary,\n  description = excluded.description,\n  source_url = excluded.source_url,\n  source_name = excluded.source_name,\n  source_event_id = excluded.source_event_id,\n  event_start_at = excluded.event_start_at,\n  event_end_at = excluded.event_end_at,\n  timezone = excluded.timezone,\n  venue_name = excluded.venue_name,\n  venue_address = excluded.venue_address,\n  neighborhood = excluded.neighborhood,\n  category = excluded.category,\n  price_text = excluded.price_text,\n  image_url = excluded.image_url,\n  reason = excluded.reason,\n  suggestion = excluded.suggestion,\n  score = excluded.score,\n  tags = excluded.tags;"
+        "query": "SELECT id, slug FROM public.events WHERE source_url = $1 LIMIT 1;",
+        "options": {
+          "queryParams": "={{ $json.url }}"
+        }
+      },
+      "id": "dedup-check",
+      "name": "Dedup Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1200, 300],
+      "credentials": {
+        "postgres": {
+          "id": "replace-me",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "dedup-condition",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-new-event",
+      "name": "Is New Event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1420, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "=replace-me-with-sheet-id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Event Inbox"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "duplicate",
+            "error_message": "=Already exists in database"
+          }
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "handlingExtraData": "ignoreIt",
+          "matchingColumns": ["row_number"]
+        }
+      },
+      "id": "mark-duplicate",
+      "name": "Mark Duplicate",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1640, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "replace-me",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Process One at a Time').item.json.url }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "responseFormat": "text"
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; BangaloreSceneBot/1.0)"
+            }
+          ]
+        }
+      },
+      "id": "fetch-page",
+      "name": "Fetch Event Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1640, 160],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract og:image or twitter:image from raw HTML meta tags,\n// then strip HTML to plain text for LLM.\nconst item = $input.first();\nconst html = item.json.data || item.json.body || '';\nconst originalData = $('Process One at a Time').item.json;\n\nif (!html || html.length < 100) {\n  throw new Error('No extractable content at URL');\n}\n\n// --- Extract og:image / twitter:image ---\nlet ogImage = '';\nconst ogMatch = html.match(/<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i)\n  || html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']/i);\nif (ogMatch) ogImage = ogMatch[1];\n\nif (!ogImage) {\n  const twMatch = html.match(/<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i)\n    || html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+name=[\"']twitter:image[\"']/i);\n  if (twMatch) ogImage = twMatch[1];\n}\n\n// --- Strip HTML to plain text ---\nlet text = html\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n  .replace(/<[^>]+>/g, ' ')\n  .replace(/&nbsp;/g, ' ')\n  .replace(/&amp;/g, '&')\n  .replace(/&lt;/g, '<')\n  .replace(/&gt;/g, '>')\n  .replace(/&#?\\w+;/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim();\n\nconst MAX_CHARS = 8000;\nif (text.length > MAX_CHARS) {\n  text = text.slice(0, MAX_CHARS) + '... [truncated]';\n}\n\nreturn [{\n  json: {\n    url: originalData.url,\n    note: originalData.note || '',\n    _row_number: originalData._row_number,\n    og_image_url: ogImage,\n    page_text: text\n  }\n}];"
+      },
+      "id": "extract-and-strip",
+      "name": "Extract Image & Strip HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 160]
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an event data extraction assistant for BangaloreScene.xyz, a curated guide to interesting events in Bangalore, India.\n\nGiven the text content scraped from an event page URL, extract structured event information and return it as a single JSON object. Be precise with dates and times — always use ISO 8601 format with the +05:30 offset for IST.\n\nRules:\n- If a field cannot be determined, use null or empty string as appropriate\n- For category, pick ONE from: Music, Art, Theatre, Comedy, Film, Tech, Design, Food, Wellness, Sports, Community, Workshop, Nightlife, Literature, General\n- For neighborhood, use well-known Bangalore area names (Koramangala, Indiranagar, Whitefield, Jayanagar, Malleshwaram, JP Nagar, HSR Layout, MG Road, Brigade Road, Cubbon Park, UB City, Lavelle Road, Church Street, Sadashivanagar, Basavanagudi, Electronic City, Marathahalli, Bellandur, Sarjapur Road, Hebbal, Frazer Town, etc.) or the closest match. If unsure, leave empty.\n- For score (0.0 to 1.0), rate how interesting/relevant this event is for a culturally curious Bangalore audience. Consider: uniqueness, cultural value, community appeal, production quality signals.\n- For tags, suggest 2-5 lowercase hyphenated tags\n- source_name: identify the platform — Allevents.in, Insider.in, BookMyShow, Meetup.com, Instagram, or Other\n- source_event_id: if the URL contains a platform-specific event ID, extract it\n- reason: 1 sentence on why this event fits BangaloreScene.xyz\n- suggestion: 1 sentence advising the human curator (e.g. \"Approve if date confirmed\", \"Check if free entry is accurate\", \"Skip — looks like a recurring generic meetup\")\n\nReturn ONLY valid JSON. No markdown fences, no explanation, no extra text."
+            },
+            {
+              "role": "user",
+              "content": "=URL: {{ $json.url }}\nUser note: {{ $json.note || '(none)' }}\n\n--- PAGE CONTENT ---\n{{ $json.page_text }}\n--- END PAGE CONTENT ---\n\nExtract the event data as JSON with these exact keys:\ntitle, summary, description, source_name, source_event_id, event_start_at, event_end_at, venue_name, venue_address, neighborhood, category, price_text, image_url, reason, suggestion, score, tags"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1,
+          "maxTokens": 2000
+        }
+      },
+      "id": "llm-enrich",
+      "name": "AI Extract & Enrich",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [2080, 160],
+      "credentials": {
+        "anthropicApi": {
+          "id": "replace-me",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse LLM JSON response, generate slug, merge og:image.\nconst llmOutput = $input.first().json;\nconst prevData = $('Extract Image & Strip HTML').first().json;\n\n// Get the raw text response from the LLM node\nlet raw = llmOutput.response || llmOutput.text || llmOutput.message?.content || JSON.stringify(llmOutput);\n\n// Strip markdown code fences if present\nconst fenceMatch = raw.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\nif (fenceMatch) raw = fenceMatch[1];\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw.trim());\n} catch (e) {\n  throw new Error('LLM returned invalid JSON: ' + e.message + ' | Raw: ' + raw.slice(0, 200));\n}\n\n// Validate required fields\nif (!parsed.title || !parsed.event_start_at) {\n  throw new Error('Missing required fields: ' + (!parsed.title ? 'title ' : '') + (!parsed.event_start_at ? 'event_start_at' : ''));\n}\n\n// Slugify matching src/lib/utils.ts:63-69\nfunction slugify(text) {\n  return text\n    .toLowerCase()\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '')\n    .slice(0, 80);\n}\n\nconst dateSlug = (parsed.event_start_at || '').slice(0, 10);\nconst slug = slugify(parsed.title + '-' + dateSlug);\n\n// Merge image: prefer og:image extracted from HTML, fall back to LLM-extracted\nconst image_url = prevData.og_image_url || parsed.image_url || null;\n\n// Ensure tags is an array\nlet tags = parsed.tags || [];\nif (typeof tags === 'string') {\n  tags = tags.split(',').map(t => t.trim()).filter(Boolean);\n}\n\nreturn [{\n  json: {\n    slug,\n    status: 'pending',\n    title: parsed.title,\n    summary: parsed.summary || '',\n    description: parsed.description || '',\n    source_url: prevData.url,\n    source_name: parsed.source_name || '',\n    source_event_id: parsed.source_event_id || '',\n    event_start_at: parsed.event_start_at,\n    event_end_at: parsed.event_end_at || null,\n    timezone: 'Asia/Kolkata',\n    venue_name: parsed.venue_name || '',\n    venue_address: parsed.venue_address || '',\n    neighborhood: parsed.neighborhood || '',\n    category: parsed.category || 'General',\n    price_text: parsed.price_text || '',\n    image_url,\n    reason: parsed.reason || '',\n    suggestion: parsed.suggestion || '',\n    score: parsed.score != null ? Number(parsed.score) : null,\n    tags,\n    _row_number: prevData._row_number\n  }\n}];"
+      },
+      "id": "parse-and-slug",
+      "name": "Parse LLM & Generate Slug",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, 160]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.events (\n  slug, status, title, summary, description,\n  source_url, source_name, source_event_id,\n  event_start_at, event_end_at, timezone,\n  venue_name, venue_address, neighborhood,\n  category, price_text, image_url,\n  reason, suggestion, score, tags\n)\nVALUES (\n  $1, $2, $3, $4, $5,\n  $6, $7, $8,\n  $9, $10, $11,\n  $12, $13, $14,\n  $15, $16, $17,\n  $18, $19, $20, $21::text[]\n)\nON CONFLICT (slug)\nDO UPDATE SET\n  title = EXCLUDED.title,\n  summary = EXCLUDED.summary,\n  description = EXCLUDED.description,\n  source_url = EXCLUDED.source_url,\n  source_name = EXCLUDED.source_name,\n  source_event_id = EXCLUDED.source_event_id,\n  event_start_at = EXCLUDED.event_start_at,\n  event_end_at = EXCLUDED.event_end_at,\n  venue_name = EXCLUDED.venue_name,\n  venue_address = EXCLUDED.venue_address,\n  neighborhood = EXCLUDED.neighborhood,\n  category = EXCLUDED.category,\n  price_text = EXCLUDED.price_text,\n  image_url = EXCLUDED.image_url,\n  reason = EXCLUDED.reason,\n  suggestion = EXCLUDED.suggestion,\n  score = EXCLUDED.score,\n  tags = EXCLUDED.tags\nRETURNING id;",
+        "options": {
+          "queryParams": "={{ [$json.slug, $json.status, $json.title, $json.summary, $json.description, $json.source_url, $json.source_name, $json.source_event_id, $json.event_start_at, $json.event_end_at, $json.timezone, $json.venue_name, $json.venue_address, $json.neighborhood, $json.category, $json.price_text, $json.image_url, $json.reason, $json.suggestion, $json.score, '{' + $json.tags.join(',') + '}'].join(',') }}"
+        }
       },
       "id": "upsert-supabase",
       "name": "Upsert Into Supabase",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [
-        780,
-        260
-      ],
+      "position": [2520, 160],
       "credentials": {
         "postgres": {
           "id": "replace-me",
           "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "=replace-me-with-sheet-id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Event Inbox"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "done",
+            "supabase_id": "={{ $json.id }}",
+            "title": "={{ $('Parse LLM & Generate Slug').item.json.title }}",
+            "event_start_at": "={{ $('Parse LLM & Generate Slug').item.json.event_start_at }}",
+            "venue_name": "={{ $('Parse LLM & Generate Slug').item.json.venue_name }}",
+            "neighborhood": "={{ $('Parse LLM & Generate Slug').item.json.neighborhood }}",
+            "category": "={{ $('Parse LLM & Generate Slug').item.json.category }}",
+            "price_text": "={{ $('Parse LLM & Generate Slug').item.json.price_text }}",
+            "summary": "={{ $('Parse LLM & Generate Slug').item.json.summary }}",
+            "tags": "={{ $('Parse LLM & Generate Slug').item.json.tags.join(', ') }}",
+            "score": "={{ $('Parse LLM & Generate Slug').item.json.score }}",
+            "reason": "={{ $('Parse LLM & Generate Slug').item.json.reason }}",
+            "suggestion": "={{ $('Parse LLM & Generate Slug').item.json.suggestion }}"
+          }
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "handlingExtraData": "ignoreIt",
+          "matchingColumns": ["row_number"]
+        }
+      },
+      "id": "mark-done",
+      "name": "Write Enriched & Mark Done",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2740, 160],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "replace-me",
+          "name": "Google Sheets OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format error message from any failed upstream node.\nconst error = $input.first().json;\nconst originalData = $('Process One at a Time').item.json;\n\nlet message = 'Unknown error';\nif (error.error?.message) message = error.error.message;\nelse if (error.message) message = error.message;\nelse if (typeof error === 'string') message = error;\n\n// Truncate long error messages\nif (message.length > 200) message = message.slice(0, 200) + '...';\n\nreturn [{\n  json: {\n    _row_number: originalData._row_number,\n    error_message: message\n  }\n}];"
+      },
+      "id": "format-error",
+      "name": "Format Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, 500]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "=replace-me-with-sheet-id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Event Inbox"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "error",
+            "error_message": "={{ $json.error_message }}"
+          }
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED",
+          "handlingExtraData": "ignoreIt",
+          "matchingColumns": ["row_number"]
+        }
+      },
+      "id": "mark-error",
+      "name": "Mark Error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2520, 500],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "replace-me",
+          "name": "Google Sheets OAuth2"
         }
       }
     }
@@ -60,14 +402,131 @@
       "main": [
         [
           {
-            "node": "Normalize Source Records",
+            "node": "Read Unprocessed Rows",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalize Source Records": {
+    "Read Unprocessed Rows": {
+      "main": [
+        [
+          {
+            "node": "Filter Unprocessed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Unprocessed": {
+      "main": [
+        [
+          {
+            "node": "Process One at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process One at a Time": {
+      "main": [
+        [
+          {
+            "node": "Mark Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Processing": {
+      "main": [
+        [
+          {
+            "node": "Dedup Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Check": {
+      "main": [
+        [
+          {
+            "node": "Is New Event?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Event?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Event Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Process One at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Event Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Image & Strip HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Image & Strip HTML": {
+      "main": [
+        [
+          {
+            "node": "AI Extract & Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Extract & Enrich": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM & Generate Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM & Generate Slug": {
       "main": [
         [
           {
@@ -77,6 +536,58 @@
           }
         ]
       ]
+    },
+    "Upsert Into Supabase": {
+      "main": [
+        [
+          {
+            "node": "Write Enriched & Mark Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Enriched & Mark Done": {
+      "main": [
+        [
+          {
+            "node": "Process One at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error": {
+      "main": [
+        [
+          {
+            "node": "Mark Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Error": {
+      "main": [
+        [
+          {
+            "node": "Process One at a Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "Replace all 'replace-me' credential IDs and 'replace-me-with-sheet-id' with actual values after import.\n\nGoogle Sheet columns: url | note | status | error_message | processed_at | supabase_id | title | event_start_at | venue_name | neighborhood | category | price_text | summary | tags | score | reason | suggestion\n\nError handling: nodes with continueOnFail connect to Format Error → Mark Error → loop back."
   }
 }
