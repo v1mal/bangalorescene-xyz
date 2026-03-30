@@ -7,7 +7,7 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
 ---
 
 <PublicLayout title="bangalorescene.xyz" showFooter={false}>
-  <main class="shell">
+  <main class="shell coming-soon-main">
     <section class="masthead">
       <span class="eyebrow">bangalorescene.xyz</span>
       <h1 class="hero-title">Bangalore’s curated events feed is coming back!</h1>
@@ -17,6 +17,22 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
       <div class="nav-row">
         <button class="button" type="button" data-open-newsletter>Get notified</button>
       </div>
+      <p class="coming-soon-trust">No spam. Just the launch note.</p>
+    </section>
+
+    <section class="coming-soon-values" aria-label="Why sign up">
+      <article class="panel coming-soon-value-card">
+        <span class="eyebrow">Curated picks</span>
+        <p class="muted">A tighter shortlist of nights worth stepping out for.</p>
+      </article>
+      <article class="panel coming-soon-value-card">
+        <span class="eyebrow">Bangalore-first</span>
+        <p class="muted">Built around the city’s gigs, scenes, and local rhythms.</p>
+      </article>
+      <article class="panel coming-soon-value-card">
+        <span class="eyebrow">No noise</span>
+        <p class="muted">One launch note when we go live. Nothing extra.</p>
+      </article>
     </section>
   </main>
 
@@ -46,7 +62,6 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
               <div
                 class="newsletter-form__honeypot"
                 aria-hidden="true"
-                style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;"
               >
                 <label for="newsletter-company">Company</label>
                 <input
@@ -228,6 +243,41 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
 </PublicLayout>
 
 <style>
+  .coming-soon-main {
+    padding-top: clamp(3rem, 10vw, 5.5rem);
+  }
+
+  .coming-soon-trust {
+    margin: 0;
+    color: var(--muted-soft);
+    font-size: var(--type-size-small);
+    font-weight: var(--type-weight-medium);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .coming-soon-values {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-md);
+    margin-top: var(--space-2xl);
+  }
+
+  .coming-soon-value-card {
+    gap: var(--space-sm);
+    min-height: 100%;
+  }
+
+  .coming-soon-value-card .eyebrow,
+  .coming-soon-value-card .muted {
+    margin: 0;
+  }
+
+  .coming-soon-value-card .muted {
+    font-size: var(--type-size-body);
+    text-wrap: pretty;
+  }
+
   .newsletter-modal[hidden] {
     display: none;
   }
@@ -280,14 +330,34 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
     background: transparent;
-    color: var(--ink);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: var(--ink-strong);
     font: inherit;
-    font-size: 2rem;
-    font-weight: var(--type-weight-medium);
+    font-size: 2.15rem;
+    font-weight: var(--type-weight-semibold);
     line-height: 1;
     padding: 0;
     cursor: pointer;
+  }
+
+  .newsletter-modal__close:hover {
+    transform: none;
+    border: 0;
+    background: transparent;
+    color: var(--accent-strong);
+  }
+
+  .newsletter-modal__close:focus-visible {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 4px;
   }
 
   .newsletter-panel {
@@ -308,10 +378,10 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
 
   .newsletter-state--success {
     padding: var(--space-lg);
-    border: 1px solid rgba(3, 201, 136, 0.24);
+    border: 1px solid rgba(70, 216, 255, 0.24);
     border-radius: var(--radius-lg);
     background:
-      linear-gradient(180deg, rgba(3, 201, 136, 0.08), rgba(3, 201, 136, 0.03)),
+      linear-gradient(180deg, rgba(70, 216, 255, 0.08), rgba(70, 216, 255, 0.03)),
       var(--surface-soft);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
   }
@@ -357,9 +427,9 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
   }
 
   .newsletter-form__input:focus {
-    outline: 2px solid rgba(3, 201, 136, 0.35);
+    outline: 2px solid rgba(70, 216, 255, 0.35);
     outline-offset: 0;
-    border-color: rgba(3, 201, 136, 0.6);
+    border-color: rgba(70, 216, 255, 0.6);
   }
 
   .newsletter-form__error {
@@ -408,10 +478,18 @@ const newsletterAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
 
   .newsletter-state--success .eyebrow {
     margin: 0;
-    color: rgba(159, 238, 197, 0.82);
+    color: var(--muted-soft);
   }
 
   @media (max-width: 720px) {
+    .coming-soon-main {
+      padding-top: var(--space-3xl);
+    }
+
+    .coming-soon-values {
+      grid-template-columns: 1fr;
+    }
+
     .newsletter-modal {
       padding: var(--space-lg);
     }
