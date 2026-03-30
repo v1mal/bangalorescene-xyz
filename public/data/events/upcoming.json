@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-30T20:01:17.110Z",
+  "generated_at": "2026-03-30T20:30:22.128Z",
   "items": [
     {
       "id": "a149fa27-d0fe-4b86-a6dd-5183be570d8f",
@@ -21,6 +21,28 @@
         "international-artist",
         "dance-music",
         "concert"
+      ]
+    },
+    {
+      "id": "d766e82d-9e9c-40ba-801f-73e943b86ad0",
+      "slug": "read-the-room-loif-open-to-close-optikbloom-x-kushlet-visuals-2026-04-17",
+      "title": "read the room: LOIF [open-to-close], optikbloom x Kushlet [visuals]",
+      "summary": "Techno, Psychedelic, Electronic, Psytrance underground music event featuring LOIF open-to-close set with visuals by optikbloom x Kushlet",
+      "event_start_at": "2026-04-17T14:30:00+00:00",
+      "event_end_at": null,
+      "timezone": "Asia/Kolkata",
+      "venue_name": "social indiranagar",
+      "neighborhood": "",
+      "category": "Music",
+      "price_text": "",
+      "source_url": "https://sortmyscene.com/event/read-the-room-apr-17-2026",
+      "image_url": "https://cdn.sortmyscene.com/read-the-room1774711782475-preview.webp",
+      "tags": [
+        "techno",
+        "psytrance",
+        "electronic",
+        "underground",
+        "visuals"
       ]
     },
     {
