@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-15T15:32:33.923Z",
+  "generated_at": "2026-04-15T15:36:18.893Z",
   "items": [
     {
       "id": "a149fa27-d0fe-4b86-a6dd-5183be570d8f",
@@ -43,6 +43,28 @@
         "electronic",
         "underground",
         "visuals"
+      ]
+    },
+    {
+      "id": "88efcf1e-257e-49dc-8dd5-0cd71a877e99",
+      "slug": "code-noise-open-air-ft-kaufmann-2026-04-18",
+      "title": "Code:Noise - Open Air ft. Kaufmann",
+      "summary": "Immersive open-air audio-visual electronic music experience with psychedelic art and cutting-edge visuals",
+      "event_start_at": "2026-04-18T08:30:00+00:00",
+      "event_end_at": "2026-04-18T19:30:00+00:00",
+      "timezone": "Asia/Kolkata",
+      "venue_name": "High Ultra Lounge",
+      "neighborhood": "",
+      "category": "Music",
+      "price_text": "₹399 onwards",
+      "source_url": "https://www.district.in/events/codenoise-open-air-apr18-2026-buy-tickets",
+      "image_url": "https://media.insider.in/image/upload/c_crop,g_custom/v1775480741/lm3g8fhshnpncjpl6ecx.jpg",
+      "tags": [
+        "electronic-music",
+        "open-air",
+        "audio-visual",
+        "dance-music",
+        "outdoor-festival"
       ]
     },
     {
