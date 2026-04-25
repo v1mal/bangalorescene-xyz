@@ -1,6 +1,28 @@
 {
-  "generated_at": "2026-04-25T19:01:29.543Z",
+  "generated_at": "2026-04-25T20:01:29.368Z",
   "items": [
+    {
+      "id": "e90917a9-a4d3-4b96-9cdc-8841c91d01c7",
+      "slug": "one-music-festival-ft-romain-garcia-my-friend-and-more-2026-04-25",
+      "title": "ONE MUSIC FESTIVAL | Ft. Romain Garcia, My Friend, and more",
+      "summary": "Bengaluru's most elevated open-air music experience featuring international and homegrown melodic house and techno artists on a rooftop 31 floors above the city.",
+      "event_start_at": "2026-04-25T10:30:00+00:00",
+      "event_end_at": "2026-04-25T19:15:00+00:00",
+      "timezone": "Asia/Kolkata",
+      "venue_name": "High Ultra Lounge - Sheraton Grand Bangalore Hotel",
+      "neighborhood": "Rajajinagar",
+      "category": "Music",
+      "price_text": "₹499 onwards",
+      "source_url": "https://www.district.in/events/one-music-festival-25th-april-2026-ft-romain-garcia-my-friend-and-more-apr25-2026-buy-tickets",
+      "image_url": "https://media.insider.in/image/upload/c_crop,g_custom/v1773815090/kmolgsfxh45hxcfwosvt.jpg",
+      "tags": [
+        "electronic-music",
+        "rooftop-festival",
+        "melodic-house",
+        "techno",
+        "luxury-venue"
+      ]
+    },
     {
       "id": "88efcf1e-257e-49dc-8dd5-0cd71a877e99",
       "slug": "code-noise-open-air-ft-kaufmann-2026-04-18",
