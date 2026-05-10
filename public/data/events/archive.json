@@ -1,6 +1,28 @@
 {
-  "generated_at": "2026-05-10T10:01:29.622Z",
+  "generated_at": "2026-05-10T11:01:29.750Z",
   "items": [
+    {
+      "id": "dfc5b8dc-e3ea-4889-8b49-610e4355f227",
+      "slug": "mochakk-india-tour-2026-05-10",
+      "title": "Mochakk India Tour",
+      "summary": "Global house phenomenon Mochakk makes his India debut with high-energy beats, house, techno and funk",
+      "event_start_at": "2026-05-10T07:00:00+00:00",
+      "event_end_at": "2026-05-10T11:00:00+00:00",
+      "timezone": "Asia/Kolkata",
+      "venue_name": "District Arena @ Terraform",
+      "neighborhood": "",
+      "category": "Music",
+      "price_text": "Starting at INR 2,000",
+      "source_url": "https://allevents.in/bangalore/mochakk-india-tour/4100029798378904",
+      "image_url": "https://cdn-az.allevents.in/events8/banners/cbbe3c80-24ec-11f1-8500-4f0c3b0bf48e-rimg-w1200-h675-dcaebcdb-gmir.jpg?v=1774073487",
+      "tags": [
+        "house-music",
+        "edm",
+        "international-artist",
+        "electronic-music",
+        "dance"
+      ]
+    },
     {
       "id": "90592871-084b-465b-a5c8-3c9faa53d553",
       "slug": "prints-pool-party-ft-answer-aayna-aaguu-deep-brown-siiry-arra-prog-rescue-2026-0",
