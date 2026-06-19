@@ -1,6 +1,28 @@
 {
-  "generated_at": "2026-06-19T15:01:29.504Z",
+  "generated_at": "2026-06-19T16:01:29.330Z",
   "items": [
+    {
+      "id": "64047082-f197-419c-8c34-7a765a51207b",
+      "slug": "fake-tattoos-x-sunset-crcle-at-kai-rooftop-2026-06-14",
+      "title": "Fake Tattoos x Sunset Crcle at Kai Rooftop",
+      "summary": "Arabian-inspired rooftop sunset party with live music, complimentary henna & fake tattoos, and stunning city views",
+      "event_start_at": "2026-06-14T12:30:00+00:00",
+      "event_end_at": "2026-06-14T18:29:00+00:00",
+      "timezone": "Asia/Kolkata",
+      "venue_name": "Kai Bar & Kitchen",
+      "neighborhood": "",
+      "category": "Music",
+      "price_text": "₹299 onwards",
+      "source_url": "https://www.district.in/events/fake-tattoos-x-sunset-crcle-at-kai-rooftop-jun14-2026-buy-tickets",
+      "image_url": "https://cdn.district.in/assets/events/publisher/event_cover_image_horizontal/01KTPCQYF6M51EJ2H5813JDAK7.jpg",
+      "tags": [
+        "rooftop-party",
+        "sunset-music",
+        "henna-art",
+        "arabian-theme",
+        "live-dj"
+      ]
+    },
     {
       "id": "33811212-e654-4f8a-8416-cc9fe1035c4e",
       "slug": "pig-dan-live-at-sunburn-union-2026-06-13",
