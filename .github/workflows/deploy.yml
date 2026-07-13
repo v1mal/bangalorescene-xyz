@@ -35,6 +35,8 @@ jobs:
         run: npm run build
         env:
           ASTRO_TELEMETRY_DISABLED: '1'
+          SITE_BASE: /bangalorescene-xyz/
+          SITE_URL: https://v1mal.github.io/bangalorescene-xyz/
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
